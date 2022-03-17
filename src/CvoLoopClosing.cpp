@@ -2,16 +2,14 @@
 #include <iostream>
 
 namespace cvo {
-    CvoLoopClosing::CvoLoopClosing(DBoW3::Database* pDB, CvoGPU* cvo, Calibration* calib) : 
+    CvoLoopClosing::CvoLoopClosing(DBoW3::Database* pDB) : 
                                                                                             pDB_(pDB), 
-                                                                                            cvo_(cvo), 
-                                                                                            calib_(calib),
                                                                                             frameGap_(10), 
                                                                                             minScoreAccept_(0.02) {
 
     }
-
-    bool CvoLoopClosing::detect_loop(const KeyFrame& kf) {
+    // change key frame to MAT
+    bool CvoLoopClosing::detect_loop(const cv::Mat& kf) {
         // DBoW check
         DBoW3::QueryResults rets;
         const cv::Mat& currImg = kf.img_;
@@ -50,8 +48,10 @@ namespace cvo {
                 goodMatches.push_back(matches[i][0]);
         }
         std::vector<cv::Point2f> prevKps, currKps;
+
+        int rejectionThresh
         for (int i = 0; i < goodMatches.size(); i++) {
-            prevKps.push_back(keypointPrev[goodMatches[i].queryIdx].pt);
+            prevKps.push_back(keypointPrev[goodMatches[i].trainIdx].pt);
             currKps.push_back(keypointCurr[goodMatches[i].queryIdx].pt);
         }
         cv::Mat H = cv::findHomography(prevKps, currKps, cv::RANSAC);

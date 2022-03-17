@@ -6,11 +6,6 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <eigen3/Eigen/Core>
-#include <UnifiedCvo-0.1/dataset_handler/KittiHandler.hpp>
-#include <UnifiedCvo-0.1/utils/Calibration.hpp>
-#include <UnifiedCvo-0.1/cvo/CvoGPU.hpp>
-#include <UnifiedCvo-0.1/utils/RawImage.hpp>
-#include <UnifiedCvo-0.1/utils/CvoPointCloud.hpp>
 
 using namespace std;
 
@@ -55,14 +50,14 @@ vector<Eigen::Matrix4f> readTransforms(string filename) {
     return res;
 }
 
-void testLoopClosing(cvo::KittiHandler& kitti, cvo::CvoGPU& cvo_align, cvo::Calibration& calib, vector<Eigen::Matrix4f>& TFs) {
+void testLoopClosing(cvo::KittiHandler& kitti, vector<Eigen::Matrix4f>& TFs) {
     // data parser
     kitti.set_start_index(500);
     int total_iter = kitti.get_total_number();
     // create CvoLoopClosing instance
     DBoW3::Vocabulary voc("/home/tannerliu/DBow3/orbvoc.dbow3");
     DBoW3::Database db(voc, false, 0);
-    cvo::CvoLoopClosing clc(&db, &cvo_align, &calib);
+    cvo::CvoLoopClosing clc(&db);
 
     Eigen::Matrix4f source_tf = TFs[0];
     for (int i = 0; i < total_iter; i+=10) {
@@ -99,12 +94,6 @@ int main(int argc,char *argv[]) {
     // }
     // kitti parser
     cvo::KittiHandler kitti(argv[1], 0);
-    // cvo params
-    string cvo_param_file(argv[2]);
-    // calib
-    string calib_file = string(argv[1]) + "/cvo_calib.txt";
-    cvo::Calibration calib(calib_file);
-    string sequence(argv[3]);
     // string method(argv[4]);
     // VO results
     vector<Eigen::Matrix4f> TFs = readTransforms(string(argv[5]));

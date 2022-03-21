@@ -14,6 +14,9 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   tf
+  frontend
+  inekf_msgs
+  message_filters
 )
 
 ## System dependencies are found with CMake's conventions
@@ -114,10 +117,8 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES loop_closing_ros
-#  CATKIN_DEPENDS cv_bridge roscpp rospy sensor_msgs std_msgs tf
-#  DEPENDS system_lib
+ INCLUDE_DIRS include
+ CATKIN_DEPENDS cv_bridge roscpp rospy sensor_msgs std_msgs tf frontend inekf_msgs message_filters
 )
 
 ###########
@@ -127,7 +128,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -139,6 +140,8 @@ ${DBoW3_LIBS}
 ${Boost_LIBRARIES}
 boost_system)
 
+add_executable(main ${PROJECT_SOURCE_DIR}/src/main.cpp)
+target_link_libraries(main PUBLIC ${PROJECT_NAME}  ${catkin_LIBRARIES} )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

@@ -241,7 +241,6 @@ void LoopClosingTool::create_feature(){
     currentKeypoints.clear();
     currentDescriptors.release();
     cv::Ptr<cv::FeatureDetector> detector;
-
     switch (featureType_) {
     case 1:
            detector = cv::ORB::create(featureCount_);
@@ -275,10 +274,8 @@ void LoopClosingTool::assignNewFrame(const cv::Mat &img){
 }
 void LoopClosingTool::generateKeyframe(){
     if (keyframes_.empty()){
-            IC("Pass1");
 
         keyframes_.push_back(Keyframe(0,currentImage,currentKeypoints,currentDescriptors));
-        IC("Pass2");
     }else{
         keyframes_.push_back(Keyframe(keyframes_.back().frameID+1,currentImage,currentKeypoints,currentDescriptors));
     }

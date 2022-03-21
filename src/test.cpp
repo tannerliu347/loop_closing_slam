@@ -58,6 +58,7 @@ int main(int argc,char *argv[]) {
     
     //read in vovabulary file
     string dataPath = "../data";
+    string imagePath = "../../loop_closing_data";
     DBoW3::Vocabulary voc(dataPath + "/orbvoc.dbow3");
     DBoW3::Database db(voc, false, 0);
 
@@ -73,11 +74,17 @@ int main(int argc,char *argv[]) {
     Eigen::MatrixXd loopClosureMatch = Eigen::MatrixXd::Zero(totalSequence,totalSequence);
     LoopClosingTool loopDetector(&db,&loopClosureMatch); 
     for (int i = 0; i < totalSequence;i++){
-        string filename = dataPath + "/" + fileindex[i]+".png";
+        string filename = imagePath + "/" + fileindex[i]+".png";
         //IC(filename);
         //read in new image
         cv::Mat currentImg = cv::imread(filename);
-        loopDetector.detect_loop(currentImg);
+        loopDetector.assignNewFrame(currentImg);
+        loopDetector.create_feature();
+        loopDetector.detect_loop();
+        //test descriptor mode
+        //loopDetector.detect_loop(currentImg);
+
+
         cv::imshow("dispaly",currentImg);
         cv::waitKey(10);
         filenames.push_back(filename);

@@ -28,12 +28,14 @@ class Keyframe {
     //     , featureNum(dess.rows)
     //     , keypoints(key_points) {
     // }
-    Keyframe(int16_t f_id, const cv::Mat kf, const vector<cv::KeyPoint> &key_points, const cv::Mat dess)
+    Keyframe(int16_t f_id, const cv::Mat kf,  const cv::Mat d,const vector<cv::KeyPoint> &key_points, const cv::Mat dess,const int gloablKeyframe)
         : frameID(f_id)
         , img(kf)
+        , depth(d)
         , descriptors(dess)
         , featureNum(dess.rows)
-        , keypoints(key_points) {
+        , keypoints(key_points)
+        , globalKeyframeID(gloablKeyframe){
     }
 
     void insertGlobalID(int16_t g_id) {

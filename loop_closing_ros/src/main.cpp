@@ -21,36 +21,49 @@ public:
         loopDetector_ = ltr;
         closingLine_pub = nh->advertise<visualization_msgs::Marker>("loop_closing_line", 10);
     }
-    void set_keyframe(const frontend::Keyframe::ConstPtr& msg){
+    void run_loopClosure(const frontend::Keyframe::ConstPtr& msg,const inekf_msgs::StateConstPtr &stateMsg,int frameID){
         keyframes.push_back(*msg);
+        current_state_ = (*stateMsg);
+        states[frameID] = (*stateMsg);
+
         cv_bridge::CvImagePtr color_ptr;
         cv_bridge::CvImagePtr depth_ptr;
+        cv_bridge::CvImagePtr descriptor_ptr;
         sensor_msgs::ImageConstPtr colorImg( new sensor_msgs::Image( msg->color ) );
         sensor_msgs::ImageConstPtr depthImg( new sensor_msgs::Image( msg->depth ) );
+        sensor_msgs::ImageConstPtr descriptorImg( new sensor_msgs::Image( msg->color_features) );
         try {
             color_ptr = cv_bridge::toCvCopy(colorImg, sensor_msgs::image_encodings::BGR8);
             depth_ptr = cv_bridge::toCvCopy(depthImg, sensor_msgs::image_encodings::TYPE_16UC1);
+            descriptor_ptr = cv_bridge::toCvCopy(descriptorImg,sensor_msgs::image_encodings::BGR8);
         } catch (cv_bridge::Exception &e) {
             ROS_ERROR("cv_bridge exception: %s", e.what());
             return;
         }
         cv::Mat color = color_ptr->image;
         cv::Mat depth = depth_ptr->image;
-        //IC(color);
+        cv::Mat descriptor = descriptor_ptr->image;
+        //extract globalid, and key points, 
+        std::vector<int> globalId;
+        std::vector<cv::Point2f> feature_2d;
+        std::vector<cv::Point3f> feature_3d;
+        for (int i = 0; i < msg-> features.size(); i ++){
+            globalId.push_back(msg-> features[i].globalID);
+            feature_2d.push_back(cv::Point2f(msg-> features[i].u,msg-> features[i].v));
+            feature_3d.push_back(cv::Point3f(msg-> features[i].x,msg-> features[i].y,msg-> features[i].z));
+        }
         cv::imshow("dispaly",color);
         vector<int> matchingIndex;
-        loopDetector_->assignNewFrame(color,depth,msg->frameID);
+        loopDetector_->assignNewFrame(color,depth,msg->frameID,globalId);
         loopDetector_->create_feature();
+        loopDetector_->set2DfeaturePosition(feature_2d);
+        loopDetector_->set3DfeaturePosition(feature_3d);
         loopDetector_->detect_loop(matchingIndex);
         if (!matchingIndex.empty()){
             draw_line(matchingIndex);
         }
         IC(matchingIndex);
 
-    }
-    void set_state(const inekf_msgs::StateConstPtr &stateMsg,int frameID){
-        current_state_ = (*stateMsg);
-        states[frameID] = (*stateMsg);
     }
     void draw_line(const vector<int>& matchingIndex){
         geometry_msgs::Point p_current;
@@ -98,23 +111,9 @@ private:
 loop_closing_ros loopclosing;
 void filterCallback(const inekf_msgs::StateConstPtr &stateMsg,const frontend::Keyframe::ConstPtr& Framemsg) {
 
-    loopclosing.set_keyframe(Framemsg);
-    loopclosing.set_state(stateMsg,Framemsg->frameID);
+    loopclosing.run_loopClosure(Framemsg,stateMsg,Framemsg->frameID);
     ROS_INFO("I heard: [%d]", Framemsg->frameID);
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

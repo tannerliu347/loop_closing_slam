@@ -122,10 +122,11 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidat
         }
     }
     if (good_matches.size() > 70){
+
         cv::drawMatches(curImg,cur_keypoints,candidateImg,candidate_keypoints,good_matches,match_img, 
         cv::Scalar::all(-1), cv::Scalar::all(-1),
         std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-        cv::imshow("matched",match_img);
+        cv::imshow("matched_result",match_img);
     }
     return good_matches.size();
 }
@@ -161,17 +162,30 @@ void LoopClosingTool::create_feature(){
     detector->detect(currentImage, currentKeypoints);
     detector->compute(currentImage, currentKeypoints, currentDescriptors);
 }
-void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId){
+void LoopClosingTool::create_feature(cv::Mat &feature,std::vector<cv::KeyPoint> Keypoints){
+    currentKeypoints.clear();
+    currentDescriptors.release();
+    currentKeypoints = Keypoints;
+    currentDescriptors = feature;
+}
+void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
     currentImage = img;
     currentDepth = depth;
     currentGlobalKeyframeId =  gloablKeyframeId;
+    current_globalIDs = globalID;
+
 }
 void LoopClosingTool::generateKeyframe(){
     if (keyframes_.empty()){
-        keyframes_.push_back(Keyframe(0,currentImage,currentDepth,currentKeypoints,currentDescriptors,currentGlobalKeyframeId));
+        Keyframe kf = Keyframe(0,currentImage,currentDepth,currentKeypoints,currentDescriptors,currentGlobalKeyframeId);
+        kf.insertGlobalID(current_globalIDs);
+        keyframes_.push_back(kf);
     }else{
-        keyframes_.push_back(Keyframe(keyframes_.back().frameID+1,currentImage,currentDepth,currentKeypoints,currentDescriptors,currentGlobalKeyframeId));
+        Keyframe kf = Keyframe(keyframes_.back().frameID+1,currentImage,currentDepth,currentKeypoints,currentDescriptors,currentGlobalKeyframeId);
+        kf.insertGlobalID(current_globalIDs);
+        keyframes_.push_back(kf);
     }
+
    
 }
 void LoopClosingTool::get2DfeaturePosition(vector<cv::Point2f> &point_2d, const vector<cv::KeyPoint> &good_kp2){

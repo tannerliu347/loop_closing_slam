@@ -51,11 +51,17 @@ public:
     int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
     //create feature
     void create_feature();
-    void create_feature(cv::Mat &img);
-    void assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId);
+    void create_feature(cv::Mat &feature,std::vector<cv::KeyPoint> Keypoints);
+    void assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID);
     void generateKeyframe();
     void get2DfeaturePosition(vector<cv::Point2f> &point_2d, const vector<cv::KeyPoint> &good_kp2);
     void get3DfeaturePosition(vector<cv::Point3f> &point_3d, const cv::Mat &dpt1, const vector<cv::KeyPoint> &good_kp1);
+    void set2DfeaturePosition(vector<cv::Point2f> &point_2d){
+        this->point_2d = point_2d;
+    }
+    void set3DfeaturePosition(vector<cv::Point3f> &point_3d){
+        this->point_3d = point_3d;
+    }
     //update this
     void create_camera_p(){
         parameter = parameters();
@@ -77,6 +83,7 @@ private:
     int currentGlobalKeyframeId;
     cv::Mat currentImage;
     cv::Mat currentDepth;
+    std::vector<int> current_globalIDs;
     std::vector<cv::KeyPoint> currentKeypoints;
     cv::Mat currentDescriptors;
     parameters parameter;

@@ -41,4 +41,7 @@ class Keyframe {
     void insertGlobalID(int16_t g_id) {
         globalIDs.push_back(g_id);
     }
+    void insertGlobalID(vector<int32_t>& g_ids) {
+        globalIDs = g_ids;
+    }
 };

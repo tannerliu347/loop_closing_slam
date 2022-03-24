@@ -19,6 +19,7 @@ class Keyframe {
     vector<cv::KeyPoint> keypoints;
     cv::Mat              descriptors;
     vector<int32_t>      globalIDs;
+    vector<cv::Point3f>  point_3d;
 
     // Keyframe(int16_t f_id, const cv::Mat kf, const cv::Mat dpt, const vector<cv::KeyPoint> &key_points, const cv::Mat dess)
     //     : frameID(f_id)
@@ -43,5 +44,8 @@ class Keyframe {
     }
     void insertGlobalID(vector<int32_t>& g_ids) {
         globalIDs = g_ids;
+    }
+    void insertPoint3D(vector<cv::Point3f>& p3d){
+        point_3d = p3d;
     }
 };

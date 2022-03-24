@@ -4,7 +4,9 @@
 #include <vector>
 #include <algorithm>
 #include <memory>
+#include <eigen3/Eigen/Dense>
 #include <opencv2/core/core.hpp>
+#include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <eigen3/Eigen/Core>
 #include <icecream.hpp>
@@ -12,6 +14,7 @@
 #include <DBoW3/DBoW3.h>
 #include "opencv2/calib3d/calib3d.hpp"
 #include "Keyframe.hpp"
+#include <unordered_map>
 // class keyframe{
 
 // };
@@ -38,6 +41,8 @@ struct parameters{
         RansacThresh2d = 20;
         top_match = 7;
         PIXEL_TO_METER_SCALEFACTOR = 0.001;
+        ransacReprojectionError = 8;
+        ransacIterations = 100;
     };
 
 };
@@ -51,7 +56,7 @@ public:
     int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
     //create feature
     void create_feature();
-    void create_feature(cv::Mat &feature,std::vector<cv::KeyPoint> Keypoints);
+    void create_feature(std::vector<cv::KeyPoint> Keypoints);
     void assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID);
     void generateKeyframe();
     void get2DfeaturePosition(vector<cv::Point2f> &point_2d, const vector<cv::KeyPoint> &good_kp2);
@@ -62,10 +67,13 @@ public:
     void set3DfeaturePosition(vector<cv::Point3f> &point_3d){
         this->point_3d = point_3d;
     }
+    void eliminateOutliersPnP(Keyframe& current,Keyframe& candidate);
     //update this
     void create_camera_p(){
         parameter = parameters();
     }
+
+    void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
 private:
     DBoW3::Database* pDB_;
     unsigned int frameGap_; // We consider frames within this range as too close
@@ -76,8 +84,17 @@ private:
 
     //current matches and feature point
     vector<cv::DMatch> good_matches;
+        
+    //for ransac outlier elimination
+    cv::Mat camera_mat, distort;
+    vector<cv::DMatch> ransac_matches;
+    unordered_map<int16_t, int32_t>ransac_matches_id_map;
     vector<cv::Point2f> point_2d; //2d point of current 
     vector<cv::Point3f> point_3d;
+
+    // ransac
+    cv::Mat ransacRGuess, ransacTGuess;
+
     int featureType_;
     int featureCount_;
     int currentGlobalKeyframeId;

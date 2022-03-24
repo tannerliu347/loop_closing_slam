@@ -25,39 +25,53 @@ public:
         keyframes.push_back(*msg);
         current_state_ = (*stateMsg);
         states[frameID] = (*stateMsg);
+        
+        //current pose
+        Eigen::Vector3f    positionVector(stateMsg->position.x, stateMsg->position.y, stateMsg->position.z);
+        Eigen::Quaternionf poseOrientation(stateMsg->orientation.w, stateMsg->orientation.x, stateMsg->orientation.y, stateMsg->orientation.z);
+
 
         cv_bridge::CvImagePtr color_ptr;
         cv_bridge::CvImagePtr depth_ptr;
-        cv_bridge::CvImagePtr descriptor_ptr;
+        //cv_bridge::CvImagePtr descriptor_ptr;
         sensor_msgs::ImageConstPtr colorImg( new sensor_msgs::Image( msg->color ) );
         sensor_msgs::ImageConstPtr depthImg( new sensor_msgs::Image( msg->depth ) );
-        sensor_msgs::ImageConstPtr descriptorImg( new sensor_msgs::Image( msg->color_features) );
+        //sensor_msgs::ImageConstPtr descriptorImg( new sensor_msgs::Image( msg->descriptor) );
         try {
             color_ptr = cv_bridge::toCvCopy(colorImg, sensor_msgs::image_encodings::BGR8);
             depth_ptr = cv_bridge::toCvCopy(depthImg, sensor_msgs::image_encodings::TYPE_16UC1);
-            descriptor_ptr = cv_bridge::toCvCopy(descriptorImg,sensor_msgs::image_encodings::BGR8);
+            //descriptor_ptr = cv_bridge::toCvCopy(descriptorImg,sensor_msgs::image_encodings::TYPE_16UC1);
         } catch (cv_bridge::Exception &e) {
             ROS_ERROR("cv_bridge exception: %s", e.what());
             return;
         }
         cv::Mat color = color_ptr->image;
         cv::Mat depth = depth_ptr->image;
-        cv::Mat descriptor = descriptor_ptr->image;
+        //cv::Mat descriptor = descriptor_ptr->image;
+        
         //extract globalid, and key points, 
         std::vector<int> globalId;
         std::vector<cv::Point2f> feature_2d;
         std::vector<cv::Point3f> feature_3d;
+        std::vector<cv::KeyPoint> keypoints;
         for (int i = 0; i < msg-> features.size(); i ++){
             globalId.push_back(msg-> features[i].globalID);
             feature_2d.push_back(cv::Point2f(msg-> features[i].u,msg-> features[i].v));
             feature_3d.push_back(cv::Point3f(msg-> features[i].x,msg-> features[i].y,msg-> features[i].z));
+            keypoints.push_back(cv::KeyPoint(cv::Point2f(msg-> features[i].u,msg-> features[i].v)
+                                            ,msg-> features[i].size
+                                            ,msg-> features[i].angle
+                                            ,msg-> features[i].response
+                                            ,msg-> features[i].octave
+                                            ,msg-> features[i].class_id));
         }
         cv::imshow("dispaly",color);
         vector<int> matchingIndex;
         loopDetector_->assignNewFrame(color,depth,msg->frameID,globalId);
-        loopDetector_->create_feature();
-        loopDetector_->set2DfeaturePosition(feature_2d);
+        loopDetector_->create_feature(keypoints);
+        loopDetector_->set2DfeaturePosition(feature_2d);  
         loopDetector_->set3DfeaturePosition(feature_3d);
+        loopDetector_->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
         loopDetector_->detect_loop(matchingIndex);
         if (!matchingIndex.empty()){
             draw_line(matchingIndex);

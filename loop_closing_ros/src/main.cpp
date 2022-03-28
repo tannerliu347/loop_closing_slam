@@ -69,14 +69,14 @@ public:
         vector<int> matchingIndex;
         loopDetector_->assignNewFrame(color,depth,msg->frameID,globalId);
         loopDetector_->create_feature(keypoints);
-        loopDetector_->set2DfeaturePosition(feature_2d);  
-        loopDetector_->set3DfeaturePosition(feature_3d);
+        //loopDetector_->create_feature();
+        // loopDetector_->set2DfeaturePosition(feature_2d);  
+        // loopDetector_->set3DfeaturePosition(feature_3d);
         loopDetector_->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
         loopDetector_->detect_loop(matchingIndex);
         if (!matchingIndex.empty()){
             draw_line(matchingIndex);
         }
-        IC(matchingIndex);
 
     }
     void draw_line(const vector<int>& matchingIndex){

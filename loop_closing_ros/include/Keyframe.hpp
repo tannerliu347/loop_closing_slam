@@ -17,6 +17,7 @@ class Keyframe {
     int16_t              featureNum;
     int16_t              globalKeyframeID;
     vector<cv::KeyPoint> keypoints;
+    vector<cv::KeyPoint> good_keypoints;
     cv::Mat              descriptors;
     vector<int32_t>      globalIDs;
     vector<cv::Point3f>  point_3d;
@@ -29,13 +30,14 @@ class Keyframe {
     //     , featureNum(dess.rows)
     //     , keypoints(key_points) {
     // }
-    Keyframe(int16_t f_id, const cv::Mat kf,  const cv::Mat d,const vector<cv::KeyPoint> &key_points, const cv::Mat dess,const int gloablKeyframe)
+    Keyframe(int16_t f_id, const cv::Mat kf,  const cv::Mat d,const vector<cv::KeyPoint> &key_points, const vector<cv::KeyPoint> & good_key,const cv::Mat dess,const int gloablKeyframe)
         : frameID(f_id)
         , img(kf)
         , depth(d)
         , descriptors(dess)
         , featureNum(dess.rows)
         , keypoints(key_points)
+        , good_keypoints(good_key)
         , globalKeyframeID(gloablKeyframe){
     }
 

@@ -26,7 +26,7 @@ struct parameters{
     double CY;
     double PIXEL_TO_METER_SCALEFACTOR;
     double ransacReprojectionError;
-    double ransacIterations;
+    int ransacIterations;
     double RansacThresh2d;
     int top_match;
     parameters(double fx,double fy,double cx,double cy,double u,double v):FX(fx),
@@ -41,8 +41,8 @@ struct parameters{
         RansacThresh2d = 20;
         top_match = 7;
         PIXEL_TO_METER_SCALEFACTOR = 0.001;
-        ransacReprojectionError = 8;
-        ransacIterations = 100;
+        ransacReprojectionError = 40;
+        ransacIterations = 1000;
     };
 
 };
@@ -53,7 +53,7 @@ public:
    // bool detect_loop_test(const cv::Mat& img);
     bool detect_loop(vector<int>& matchingindex);
     // remove wrong pair with ransac
-    int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
+    int ransac_featureMatching(Keyframe& candidate);
     //create feature
     void create_feature();
     void create_feature(std::vector<cv::KeyPoint> Keypoints);
@@ -62,12 +62,14 @@ public:
     void get2DfeaturePosition(vector<cv::Point2f> &point_2d, const vector<cv::KeyPoint> &good_kp2);
     void get3DfeaturePosition(vector<cv::Point3f> &point_3d, const cv::Mat &dpt1, const vector<cv::KeyPoint> &good_kp1);
     void set2DfeaturePosition(vector<cv::Point2f> &point_2d){
+        this->point_2d.clear();
         this->point_2d = point_2d;
     }
     void set3DfeaturePosition(vector<cv::Point3f> &point_3d){
+        this->point_3d.clear();
         this->point_3d = point_3d;
     }
-    void eliminateOutliersPnP(Keyframe& current,Keyframe& candidate);
+    void eliminateOutliersPnP(Keyframe& candidate);
     //update this
     void create_camera_p(){
         parameter = parameters();
@@ -102,9 +104,10 @@ private:
     cv::Mat currentDepth;
     std::vector<int> current_globalIDs;
     std::vector<cv::KeyPoint> currentKeypoints;
+    std::vector<cv::KeyPoint> goodKeypoints;
     cv::Mat currentDescriptors;
     parameters parameter;
-    
+    int id = 0;
 
    //std::vector<KeyFrame> histKFs_
 };

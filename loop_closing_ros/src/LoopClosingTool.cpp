@@ -17,6 +17,7 @@ bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
     int maxId = std::max(int(pDB_->size() - frameGap_),0);
     int top = parameter.top_match;
     pDB_->query(cur_desc, rets,top, maxId);
+    bool loop_detected = false;
     // simple logic check to filter out unwanted
     if (rets.empty()) {
         pDB_->add(cur_desc);
@@ -25,10 +26,12 @@ bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
         generateKeyframe();
         return false;
     }
-    for (int i = 0; i < rets.size() && i < top ; i ++ ){
-        DBoW3::Result r = rets[i];
-        IC(r.Score);
-        if (r.Score < minScoreAccept_) {
+    //make sure closet frame have a good score
+    if (ret.size() >= 1 && ret[0].Score > 0.05){
+        for (int i = 1; i < rets.size() && i < top ; i ++ ){
+            DBoW3::Result r = rets[i];
+            IC(r.Score);
+            if (r.Score < minScoreAccept_) {
         // pDB_->addImg(img);
         // //histKFs_.push_back(kf);
         // //std::cout << "added img\n";
@@ -45,15 +48,21 @@ bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
         if (inlier > inlierThresh){
             std::cout << "Cur frame: " << pDB_->size() << std::endl;
             int Curframe =  pDB_->size() - 1;
+            loop_detected = true;
             matchingindex.push_back(keyframes_[r.Id].globalKeyframeID);
         }
         good_matches.clear();
         ransac_matches.clear();
+      }
+    }else{
+       loop_detected = false; 
     }
     pDB_->add(cur_desc);
     generateKeyframe();
     //keyframes.push_back(img);
-    return true;
+    //min-index ?
+    
+    return loop_detected;
 }
 int LoopClosingTool::ransac_featureMatching(Keyframe& candidate){
     //clear previous matches 

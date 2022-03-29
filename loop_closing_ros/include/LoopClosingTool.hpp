@@ -41,8 +41,8 @@ struct parameters{
         RansacThresh2d = 30;
         top_match = 7;
         PIXEL_TO_METER_SCALEFACTOR = 0.001;
-        ransacReprojectionError = 8;
-        ransacIterations = 100;
+        ransacReprojectionError = 30;
+        ransacIterations = 1000;
     };
 
 };

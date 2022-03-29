@@ -27,7 +27,7 @@ bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
         return false;
     }
     //make sure closet frame have a good score
-    if (ret.size() >= 1 && ret[0].Score > 0.05){
+    if (rets.size() >= 1 && rets[0].Score > 0.02){
         for (int i = 1; i < rets.size() && i < top ; i ++ ){
             DBoW3::Result r = rets[i];
             IC(r.Score);
@@ -61,7 +61,7 @@ bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
     generateKeyframe();
     //keyframes.push_back(img);
     //min-index ?
-    
+
     return loop_detected;
 }
 int LoopClosingTool::ransac_featureMatching(Keyframe& candidate){

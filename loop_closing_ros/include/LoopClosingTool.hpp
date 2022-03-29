@@ -38,11 +38,11 @@ struct parameters{
         FY = 618.0050659179688;
         CX = 323.6305236816406;
         CY = 242.8762664794922;
-        RansacThresh2d = 20;
+        RansacThresh2d = 30;
         top_match = 7;
         PIXEL_TO_METER_SCALEFACTOR = 0.001;
-        ransacReprojectionError = 40;
-        ransacIterations = 1000;
+        ransacReprojectionError = 8;
+        ransacIterations = 100;
     };
 
 };

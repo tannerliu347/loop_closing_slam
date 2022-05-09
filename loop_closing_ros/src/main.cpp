@@ -20,6 +20,7 @@ public:
         nh_ = nh;
         loopDetector_ = ltr;
         closingLine_pub = nh->advertise<visualization_msgs::Marker>("loop_closing_line", 10);
+        keyframe_pub = nh->advertise<frontend::Keyframe>("loop_closing/keyframe", 10);
     }
     void run_loopClosure(const frontend::Keyframe::ConstPtr& msg,const inekf_msgs::StateConstPtr &stateMsg,int frameID){
         keyframes.push_back(*msg);
@@ -74,8 +75,12 @@ public:
         // loopDetector_->set3DfeaturePosition(feature_3d);
         loopDetector_->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
         loopDetector_->detect_loop(matchingIndex);
+        
         if (!matchingIndex.empty()){
+            //update globalId
             draw_line(matchingIndex);
+        }else{
+            keyframe_pub.publish(*msg);
         }
 
     }
@@ -113,6 +118,7 @@ private:
     ros::NodeHandle* nh_;
     ros::Subscriber keyframeSub_;
     ros::Publisher closingLine_pub;
+    ros::Publisher keyframe_pub;
     std::vector<frontend::Keyframe> keyframes;
     std::unordered_map<int, inekf_msgs::State> states;
     inekf_msgs::State current_state_;

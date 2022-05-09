@@ -83,7 +83,7 @@ int main(int argc,char *argv[]) {
         loopDetector.detect_loop();
         //test descriptor mode
         //loopDetector.detect_loop(currentImg);
-
+        
 
         cv::imshow("dispaly",currentImg);
         cv::waitKey(10);

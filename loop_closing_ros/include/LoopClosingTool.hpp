@@ -76,6 +76,7 @@ public:
     }
 
     void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
+    std::vector<int> genearteNewGlobalId(Keyframe& candidate);
 private:
     DBoW3::Database* pDB_;
     unsigned int frameGap_; // We consider frames within this range as too close

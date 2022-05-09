@@ -27,6 +27,7 @@ bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
         return false;
     }
     //make sure closet frame have a good score
+    int Min_Id = INT_MAX;
     if (rets.size() >= 1 && rets[0].Score > 0.02){
         for (int i = 1; i < rets.size() && i < top ; i ++ ){
             DBoW3::Result r = rets[i];
@@ -50,6 +51,7 @@ bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
             int Curframe =  pDB_->size() - 1;
             loop_detected = true;
             matchingindex.push_back(keyframes_[r.Id].globalKeyframeID);
+            Min_Id = min(Min_Id,int(r.Id));
             genearteNewGlobalId(keyframes_[r.Id]);
         }
         good_matches.clear();
@@ -58,12 +60,19 @@ bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
     }else{
        loop_detected = false; 
     }
+    IC(Min_Id);
     pDB_->add(cur_desc);
     generateKeyframe();
     //keyframes.push_back(img);
     //min-index ?
 
-    return loop_detected;keyframes_[r.Id]
+    return loop_detected;
+}
+int LoopClosingTool::ransac_featureMatching(Keyframe& candidate){
+    //clear previous matches 
+    good_matches.clear();
+    goodKeypoints.clear();
+   
     cv::Mat cur_descr,candidate_descr;
     std::vector<cv::KeyPoint> cur_keypoints, candidate_keypoints;
     cur_descr = currentDescriptors;
@@ -307,10 +316,11 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& candidate){
     cv::Mat lastImage = candidate.img;
     std::vector<cv::KeyPoint> lastKeypoints = candidate.keypoints;
     cv::Mat imMatches;
-    cv::drawMatches(currentImage,currentKeypoints, lastImage, lastKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
-    cv::imshow("matches_window", imMatches);
-    cv::waitKey(1);
-    cv::imwrite("result" +std::to_string(id) + ".png",imMatches );
+    //TODO: add option for debug image
+    // cv::drawMatches(currentImage,currentKeypoints, lastImage, lastKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+    // cv::imshow("matches_window", imMatches);
+    // cv::waitKey(1);
+    // cv::imwrite("result" +std::to_string(id) + ".png",imMatches );
     id++;
     // try {
         
@@ -328,8 +338,16 @@ std::vector<int> LoopClosingTool::genearteNewGlobalId(Keyframe& candidate){
     //check ransac matches, find matched global id, created map
     std::unordered_map<int,int> matched_globalId; 
     std::vector<int> result_globalId = current_globalIDs;
+    IC(result_globalId.size());
+    IC(candidate_globalId.size());
+    IC(currentKeypoints.size());
+    IC(candidate.keypoints.size());
     for (int i = 0; i < ransac_matches.size(); i ++){
+        IC(ransac_matches[i].queryIdx);
+        IC(ransac_matches[i].trainIdx);
         result_globalId[ransac_matches[i].queryIdx] = candidate_globalId[ransac_matches[i].trainIdx];
     }
-    current_globalIDs = result_globalId;
+    //current_globalIDs = result_globalId;
+    return result_globalId;
+
 }

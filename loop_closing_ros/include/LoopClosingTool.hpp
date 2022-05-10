@@ -15,6 +15,7 @@
 #include "opencv2/calib3d/calib3d.hpp"
 #include "Keyframe.hpp"
 #include <unordered_map>
+#include "Matchdata.hpp"
 // class keyframe{
 
 // };
@@ -51,7 +52,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     LoopClosingTool(DBoW3::Database* pDB);
    // bool detect_loop_test(const cv::Mat& img);
-    bool detect_loop(vector<int>& matchingindex);
+    bool detect_loop(Matchdata& point_match);
     // remove wrong pair with ransac
     int ransac_featureMatching(Keyframe& candidate);
     //create feature
@@ -76,7 +77,7 @@ public:
     }
 
     void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
-    std::vector<int> genearteNewGlobalId(Keyframe& candidate);
+    Matchdata genearteNewGlobalId(Keyframe& candidate,vector<cv::DMatch>& returned_matches);
 private:
     DBoW3::Database* pDB_;
     unsigned int frameGap_; // We consider frames within this range as too close

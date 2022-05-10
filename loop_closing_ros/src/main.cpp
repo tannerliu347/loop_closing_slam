@@ -2,6 +2,8 @@
 #include "LoopClosingTool.hpp"
 #include "std_msgs/String.h"
 #include "frontend/Keyframe.h"
+#include "frontend/Match.h"
+#include "Matchdata.hpp"
 #include "string"
 #include <cv_bridge/cv_bridge.h>
 #include <message_filters/subscriber.h>
@@ -20,7 +22,8 @@ public:
         nh_ = nh;
         loopDetector_ = ltr;
         closingLine_pub = nh->advertise<visualization_msgs::Marker>("loop_closing_line", 10);
-        keyframe_pub = nh->advertise<frontend::Keyframe>("loop_closing/keyframe", 10);
+        //keyframe_pub = nh->advertise<frontend::Keyframe>("loop_closing/keyframe", 10);
+        match_pub = nh->advertise<frontend::Match>("loop_closing/match", 10);
     }
     void run_loopClosure(const frontend::Keyframe::ConstPtr& msg,const inekf_msgs::StateConstPtr &stateMsg,int frameID){
         keyframes.push_back(*msg);
@@ -74,15 +77,56 @@ public:
         // loopDetector_->set2DfeaturePosition(feature_2d);  
         // loopDetector_->set3DfeaturePosition(feature_3d);
         loopDetector_->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
-        loopDetector_->detect_loop(matchingIndex);
+        Matchdata point_match;
+        bool loopdetected = loopDetector_->detect_loop(point_match);
         
-        if (!matchingIndex.empty()){
+        if (loopdetected){
             //update globalId
-            draw_line(matchingIndex);
-        }else{
-            keyframe_pub.publish(*msg);
+            draw_line(point_match.oldId_);
+            publish_match(point_match);
+            //publish Matched data
         }
+        // }else{
+        //    // keyframe_pub.publish(*msg);
+        // }
 
+    }
+    void publish_match(Matchdata& point_match){
+        frontend::Match match_msg;
+        match_msg.curId = point_match.curId_;
+        match_msg.oldId = point_match.oldId_;
+        match_msg.curPoint = point_match.point_current_;
+        match_msg.oldPoint = point_match.point_old_;
+        match_pub.publish(match_msg);
+    }
+    void draw_line(int i){
+        geometry_msgs::Point p_current;
+        p_current.x = current_state_.position.x;
+        p_current.y = current_state_.position.y;
+        p_current.z = current_state_.position.z;
+       
+        visualization_msgs::Marker line_strip;
+        line_strip.header.frame_id = "odom";
+        line_strip.header.stamp = ros::Time::now();
+        line_strip.ns =  "points_and_lines";
+        line_strip.action = visualization_msgs::Marker::ADD;
+        line_strip.pose.orientation.w = 1.0;
+        line_strip.id = markerId++;
+        line_strip.color.b = 1.0;
+        line_strip.color.r = 1.0;
+        line_strip.color.a = 1.0;
+        line_strip.scale.x = 0.1;
+        //matching point
+        geometry_msgs::Point matching_point;
+        matching_point.x = states[i].position.x;
+        matching_point.y= states[i].position.y;
+        matching_point.z = states[i].position.z;
+        line_strip.points.push_back(p_current);
+        line_strip.points.push_back(matching_point);
+        closingLine_pub.publish(line_strip);
+
+
+        
     }
     void draw_line(const vector<int>& matchingIndex){
         geometry_msgs::Point p_current;
@@ -119,6 +163,7 @@ private:
     ros::Subscriber keyframeSub_;
     ros::Publisher closingLine_pub;
     ros::Publisher keyframe_pub;
+    ros::Publisher match_pub;
     std::vector<frontend::Keyframe> keyframes;
     std::unordered_map<int, inekf_msgs::State> states;
     inekf_msgs::State current_state_;

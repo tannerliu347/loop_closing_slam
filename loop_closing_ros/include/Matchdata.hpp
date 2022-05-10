@@ -9,13 +9,16 @@
 #include <iostream>
 class Matchdata{
 public:
-    Matchdata(){
-
-    }
-private:
-    int curFrameIdx;
-    int matchFrameIdx;
-    vector<cv::DMatch> ransac_matches;
-    vector<int> point_match_current;
-    vector<int> point_match_old;
+    Matchdata(int curId,int oldId, vector<int> point_current,vector<int> point_old):curId_(curId),
+                                                                                    oldId_(oldId),
+                                                                                    point_current_(point_current),
+                                                                                    point_old_(point_old){}
+                                                                                    
+    Matchdata(){};
+    //TODO: make below code private, and set up interaface function
+    int curId_;
+    int oldId_;
+    //vector<cv::DMatch> ransac_matches;
+    vector<int> point_current_;
+    vector<int> point_old_;
 };

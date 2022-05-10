@@ -9,7 +9,7 @@ LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
         
     }
 
-bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
+bool LoopClosingTool::detect_loop(Matchdata& point_match){
     //create a temporal current keyframe
     cv::Mat cur_desc = currentDescriptors;
     cv::Mat img = currentImage;
@@ -28,6 +28,9 @@ bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
     }
     //make sure closet frame have a good score
     int Min_Id = INT_MAX;
+    // Store retured match
+    vector<cv::DMatch> returned_matches;
+    
     if (rets.size() >= 1 && rets[0].Score > 0.02){
         for (int i = 1; i < rets.size() && i < top ; i ++ ){
             DBoW3::Result r = rets[i];
@@ -50,9 +53,10 @@ bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
             std::cout << "Cur frame: " << pDB_->size() << std::endl;
             int Curframe =  pDB_->size() - 1;
             loop_detected = true;
-            matchingindex.push_back(keyframes_[r.Id].globalKeyframeID);
-            Min_Id = min(Min_Id,int(r.Id));
-            genearteNewGlobalId(keyframes_[r.Id]);
+            if (int(r.Id) < Min_Id){
+                returned_matches.assign(ransac_matches.begin(), ransac_matches.end());
+                Min_Id = int(r.Id);
+            }            
         }
         good_matches.clear();
         ransac_matches.clear();
@@ -60,9 +64,11 @@ bool LoopClosingTool::detect_loop(vector<int>& matchingindex){
     }else{
        loop_detected = false; 
     }
-    IC(Min_Id);
     pDB_->add(cur_desc);
     generateKeyframe();
+    if (loop_detected){
+        point_match = genearteNewGlobalId(keyframes_[Min_Id],returned_matches);
+    }
     //keyframes.push_back(img);
     //min-index ?
 
@@ -333,21 +339,20 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& candidate){
     // }
     cout << "match size: " << good_matches.size() << "," << ransac_matches.size() << endl;
 }
-std::vector<int> LoopClosingTool::genearteNewGlobalId(Keyframe& candidate){
+Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& candidate,vector<cv::DMatch>& returned_matches){
     std::vector<int> candidate_globalId = candidate.globalIDs;
     //check ransac matches, find matched global id, created map
     std::unordered_map<int,int> matched_globalId; 
     std::vector<int> result_globalId = current_globalIDs;
-    IC(result_globalId.size());
-    IC(candidate_globalId.size());
-    IC(currentKeypoints.size());
-    IC(candidate.keypoints.size());
-    for (int i = 0; i < ransac_matches.size(); i ++){
-        IC(ransac_matches[i].queryIdx);
-        IC(ransac_matches[i].trainIdx);
-        result_globalId[ransac_matches[i].queryIdx] = candidate_globalId[ransac_matches[i].trainIdx];
+    std::vector<int> cur_pointId;
+    std::vector<int> old_pointId;
+    for (int i = 0; i < returned_matches.size(); i ++){
+        IC(current_globalIDs[returned_matches[i].queryIdx]);
+        cur_pointId.push_back( current_globalIDs[returned_matches[i].queryIdx]);
+        old_pointId.push_back( candidate_globalId[returned_matches[i].trainIdx]);
     }
+    Matchdata point_match(currentGlobalKeyframeId,candidate.globalKeyframeID,cur_pointId,old_pointId);
     //current_globalIDs = result_globalId;
-    return result_globalId;
-
+    // return result_globalId;
+    return point_match;
 }

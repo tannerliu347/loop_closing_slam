@@ -30,6 +30,7 @@ struct parameters{
     int ransacIterations;
     double RansacThresh2d;
     int top_match;
+    int framegap;
     parameters(double fx,double fy,double cx,double cy,double u,double v):FX(fx),
                                                                                 FY(fy),
                                                                                 CX(cx),
@@ -39,11 +40,12 @@ struct parameters{
         FY = 618.0050659179688;
         CX = 323.6305236816406;
         CY = 242.8762664794922;
-        RansacThresh2d = 30;
+        RansacThresh2d = 50;
         top_match = 7;
         PIXEL_TO_METER_SCALEFACTOR = 0.001;
-        ransacReprojectionError = 30;
-        ransacIterations = 1000;
+        ransacReprojectionError = 8;
+        ransacIterations = 100;
+        framegap = 5;
     };
 
 };

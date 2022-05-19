@@ -1,15 +1,16 @@
 #include "LoopClosingTool.hpp"
 #include <algorithm>
 LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
-                                                    frameGap_(10), 
-                                                    minScoreAccept_(0.015),
-                                                    featureType_(3),
-                                                    featureCount_(2000){   
+                                                    frameGap_(15), 
+                                                    minScoreAccept_(0.01),
+                                                    featureType_(1),
+                                                    featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         
     }
 
 bool LoopClosingTool::detect_loop(Matchdata& point_match){
+    IC(currentKeypoints.size());
     //create a temporal current keyframe
     cv::Mat cur_desc = currentDescriptors;
     cv::Mat img = currentImage;
@@ -30,34 +31,40 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
     int Min_Id = INT_MAX;
     // Store retured match
     vector<cv::DMatch> returned_matches;
-    
-    if (rets.size() >= 1 && rets[0].Score > 0.03){
+
+    if (rets.size() >= 1 && rets[0].Score > 0.011){
         for (int i = 1; i < rets.size() && i < top ; i ++ ){
             DBoW3::Result r = rets[i];
+            // if (abs(int(r.Id) - int(rets[i-1].Id)) < 3 ){
+            //     continue;
+            // }
+            IC(r.Score);
             if (r.Score < minScoreAccept_) {
         // pDB_->addImg(img);
         // //histKFs_.push_back(kf);
         // //std::cout << "added img\n";
         // return false;
             continue;
-        }
-        int inlier = ransac_featureMatching(keyframes_[r.Id]);
-        eliminateOutliersPnP(keyframes_[r.Id]);
-        inlier = ransac_matches.size();
-        //int inlier = 100;
-        int inlierThresh = 50;
-
-        if (inlier > inlierThresh){
-            std::cout << "Cur frame: " << pDB_->size() << std::endl;
-            int Curframe =  pDB_->size() - 1;
-            loop_detected = true;
-            if (int(r.Id) < Min_Id){
-                returned_matches.assign(ransac_matches.begin(), ransac_matches.end());
-                Min_Id = int(r.Id);
-            }            
-        }
-        good_matches.clear();
-        ransac_matches.clear();
+            } 
+            
+            IC(int(r.Id));
+            IC(r.Score);
+            int inlier = ransac_featureMatching(keyframes_[r.Id]);
+            eliminateOutliersPnP(keyframes_[r.Id]);
+            inlier = ransac_matches.size();
+            //int inlier = 100;
+            int inlierThresh = 10;
+            if (inlier > inlierThresh){
+                std::cout << "Cur frame: " << pDB_->size() << std::endl;
+                int Curframe =  pDB_->size() - 1;
+                loop_detected = true;
+                if (int(r.Id) < Min_Id){
+                    returned_matches.assign(ransac_matches.begin(), ransac_matches.end());
+                    Min_Id = int(r.Id);
+                }            
+            }
+            good_matches.clear();
+            ransac_matches.clear();
       }
     }else{
        loop_detected = false; 
@@ -76,7 +83,7 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& candidate){
     //clear previous matches 
     good_matches.clear();
     goodKeypoints.clear();
-   
+    good_lastKeypoints.clear();
     cv::Mat cur_descr,candidate_descr;
     std::vector<cv::KeyPoint> cur_keypoints, candidate_keypoints;
     cur_descr = currentDescriptors;
@@ -96,61 +103,42 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& candidate){
     }
     // matcher.match( cur_descr, candidate_descr, matches );
     //mathcer brute force
-    cv::BFMatcher matcher(cv::NORM_L2,true);
+    cv::BFMatcher matcher( cv::NORM_L2,true);
     std::vector<cv::DMatch> matches;
-    matcher.match( cur_descr, candidate_descr, matches );
+    matcher.match( candidate_descr,cur_descr, matches );
     cv::Mat match_img;
 
     //find good match
     //if a distance is bigger then 2*min distance, we assume is false
     //to avoid extrme small mindistance we use 30 
     std::vector<cv::DMatch> normalMatches;
-    double min_dist = 10000, max_dist = 0;
-    for (int i = 0; i < matches.size(); i++) {
-        double dist = matches[i].distance;
-        if (dist < min_dist) min_dist = dist;
-        if (dist > max_dist) max_dist = dist;
+    normalMatches = matches;
+    std::vector<cv::Point2f> curKps, candKps;
+        for (int i = 0; i < normalMatches.size(); i++) {
+            candKps.push_back( candidate_keypoints[normalMatches[i].trainIdx].pt);
+            curKps.push_back(cur_keypoints[normalMatches[i].queryIdx].pt);
     }
-    for (int i =0; i < matches.size();i++){
-        if(matches[i].distance <= std::max(5*min_dist,30.0)){
-            normalMatches.push_back(matches[i]);
-            goodKeypoints.push_back(cur_keypoints[matches[i].queryIdx]);
+  
+    // Use ransac to further remove outlier
+    cv::Mat H;
+    H = cv::findHomography(cv::Mat(curKps),cv::Mat(candKps),cv::RANSAC,parameter.RansacThresh2d);
+    //check if H is empty
+    if(H.empty()){return 0;}
+    cv::Mat curTransformed;
+    cv::perspectiveTransform(cv::Mat(curKps),curTransformed,H);
+    // save inlier
+    for (int i =0; i < normalMatches.size(); i ++){
+        if (cv::norm(candKps[i] - curTransformed.at<cv::Point2f>((int)i,0)) <= parameter.RansacThresh2d){
+            good_matches.push_back(normalMatches[i]);
         }
     }
-    good_matches = normalMatches;
-    // //find rearange keypoint
-    //normalMatches = matches;
-    // std::vector<cv::Point2f> curKps, candKps;
-    //     for (int i = 0; i < normalMatches.size(); i++) {
-    //         candKps.push_back( candidate_keypoints[normalMatches[i].trainIdx].pt);
-    //         curKps.push_back(cur_keypoints[normalMatches[i].queryIdx].pt);
-    // }
-  
-    // // Use ransac to further remove outlier
-    // cv::Mat H;
-    // H = cv::findHomography(cv::Mat(curKps),cv::Mat(candKps),cv::RANSAC,parameter.RansacThresh2d);
-    // //check if H is empty
-    // if(H.empty()){return 0;}
-    // cv::Mat curTransformed;
-    // cv::perspectiveTransform(cv::Mat(curKps),curTransformed,H);
-    // // save inlier
-    // for (int i =0; i < normalMatches.size(); i ++){
-    //     if (cv::norm(candKps[i] - curTransformed.at<cv::Point2f>((int)i,0)) <= parameter.RansacThresh2d){
-    //         good_matches.push_back(normalMatches[i]);
-    //     }
-    // }
-    //  for (int i = 0; i < good_matches.size(); i++) {
-    //         goodKeypoints.push_back(cur_keypoints[good_matches[i].queryIdx]);
-    // }
-    // good_matches = matches;
-    //goodKeypoints = cur_keypoints;
-    // if (good_matches.size() > 70){
+    good_matches.clear();
+    good_matches = matches;
+     for (int i = 0; i < good_matches.size(); i++) {
+            goodKeypoints.push_back(cur_keypoints[good_matches[i].trainIdx]);
+            good_lastKeypoints.push_back(candidate_keypoints[good_matches[i].queryIdx]);
+    }
 
-    //     cv::drawMatches(curImg,cur_keypoints,candidateImg,candidate_keypoints,good_matches,match_img, 
-    //     cv::Scalar::all(-1), cv::Scalar::all(-1),
-    //     std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-    //     cv::imshow("matched_result",match_img);
-    // }
     return good_matches.size();
 }
 void LoopClosingTool::create_feature(){
@@ -190,9 +178,10 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
     currentDescriptors.release();
     currentKeypoints = Keypoints;
     cv::Ptr<cv::FeatureDetector> detector;
+    featureType_ = 1;
     switch (featureType_) {
     case 1:
-           detector = cv::ORB::create(featureCount_);
+           detector = cv::ORB::create();
            break;
     case 2:
     #ifdef COMPILE_WITH_SURF
@@ -202,7 +191,7 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
     #endif
             break;
         case 3:
-            detector = cv::SIFT::create(featureCount_);
+            detector = cv::SIFT::create();
             break;
         case 4:
             detector = cv::KAZE::create();
@@ -271,7 +260,7 @@ void LoopClosingTool::assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen:
 void LoopClosingTool::eliminateOutliersPnP(Keyframe& candidate){
     ransac_matches.clear();
     vector<cv::Point3f> candidate_3d; //3d point from candidate
-    get3DfeaturePosition(candidate_3d, candidate.depth,candidate.good_keypoints);
+    get3DfeaturePosition(candidate_3d, candidate.depth,good_lastKeypoints);
     //candidate_3d = candidate.point_3d;
     get2DfeaturePosition(point_2d,goodKeypoints);
     // if(candidate_3d.size() == 0){
@@ -283,19 +272,19 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& candidate){
         //convert point 3d 2d size to same size
         vector<cv::Point2f> point_2d_use;
         vector<cv::Point3f>point_3d_use;
-        if (point_2d.size() >=  candidate_3d.size()){
-            point_3d_use = candidate_3d;
-            for(int i = 0 ; i <  candidate_3d.size() ;i ++){
-                point_2d_use.push_back(point_2d[i]);
-            }
-        }else {
-            point_2d_use = point_2d;
-            for(int i = 0 ; i <  point_2d.size() ;i ++){
-                point_3d_use.push_back(candidate_3d[i]);
-            }
-        }
-        cv::solvePnPRansac(point_3d_use,
-                           point_2d_use,
+        // if (point_2d.size() >=  candidate_3d.size()){
+        //     point_3d_use = candidate_3d;
+        //     for(int i = 0 ; i <  candidate_3d.size() ;i ++){
+        //         point_2d_use.push_back(point_2d[i]);
+        //     }
+        // }else {
+        //     point_2d_use = point_2d;
+        //     for(int i = 0 ; i <  point_2d.size() ;i ++){
+        //         point_3d_use.push_back(candidate_3d[i]);
+        //     }
+        // }
+        cv::solvePnPRansac(candidate_3d,
+                           point_2d,
                            camera_mat,
                            distort,
                            ransacRVectorGuess,
@@ -305,18 +294,18 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& candidate){
                            parameter.ransacReprojectionError,
                            0.99,
                            inliers,
-                           cv::SOLVEPNP_EPNP);
+                           cv::SOLVEPNP_ITERATIVE);
 
         ransac_matches.clear();
         ransac_matches_id_map.clear();
         for (size_t i = 0; i < inliers.rows; ++i) {
             ransac_matches.push_back(good_matches[inliers.at<int>(i, 0)]);
-            ransac_matches_id_map.insert({good_matches[inliers.at<int>(i, 0)].queryIdx, good_matches[inliers.at<int>(i, 0)].trainIdx});
+            ransac_matches_id_map.insert({good_matches[inliers.at<int>(i, 0)].trainIdx, good_matches[inliers.at<int>(i, 0)].queryIdx});
         }
     } else {
         ransac_matches = good_matches;
         for (size_t i = 0; i < ransac_matches.size(); ++i) {
-            ransac_matches_id_map.insert({good_matches[i].queryIdx, good_matches[i].trainIdx});
+            ransac_matches_id_map.insert({good_matches[i].trainIdx, good_matches[i].queryIdx});
         }
     }
     cv::Mat lastImage = candidate.img;
@@ -330,7 +319,7 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& candidate){
     id++;
     try {
         
-        cv::drawMatches(currentImage, currentKeypoints, lastImage, lastKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+        cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
         cv::imshow("matches_window", imMatches);
         //cv::waitKey(1);
         cv::waitKey(1);
@@ -348,8 +337,8 @@ Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& candidate,vector<cv::DM
     std::vector<int> old_pointId;
     for (int i = 0; i < returned_matches.size(); i ++){
         //ic(returned_matches[i].queryIdx.)
-        cur_pointId.push_back( current_globalIDs[returned_matches[i].queryIdx]);
-        old_pointId.push_back( candidate_globalId[returned_matches[i].trainIdx]);
+        cur_pointId.push_back( current_globalIDs[returned_matches[i].trainIdx]);
+        old_pointId.push_back( candidate_globalId[returned_matches[i].queryIdx]);
     }
     Matchdata point_match(currentGlobalKeyframeId,candidate.globalKeyframeID,cur_pointId,old_pointId);
     //current_globalIDs = result_globalId;

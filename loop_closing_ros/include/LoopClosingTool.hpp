@@ -41,10 +41,10 @@ struct parameters{
         CX = 323.6305236816406;
         CY = 242.8762664794922;
         RansacThresh2d = 50;
-        top_match = 7;
+        top_match = 5;
         PIXEL_TO_METER_SCALEFACTOR = 0.001;
-        ransacReprojectionError = 8;
-        ransacIterations = 100;
+        ransacReprojectionError = 30;
+        ransacIterations = 1000;
         framegap = 5;
     };
 
@@ -109,6 +109,7 @@ private:
     std::vector<int> current_globalIDs;
     std::vector<cv::KeyPoint> currentKeypoints;
     std::vector<cv::KeyPoint> goodKeypoints;
+    std::vector<cv::KeyPoint> good_lastKeypoints;
     cv::Mat currentDescriptors;
     parameters parameter;
     int id = 0;

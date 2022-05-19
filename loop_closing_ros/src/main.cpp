@@ -79,7 +79,8 @@ public:
         loopDetector_->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
         Matchdata point_match;
         bool loopdetected = loopDetector_->detect_loop(point_match);
-        
+
+        //cv::imwrite("image"+std::to_string(keyframes.size())+".jpg",color );
         if (loopdetected){
             //update globalId
             draw_line(point_match.oldId_);

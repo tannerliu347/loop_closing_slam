@@ -113,6 +113,6 @@ private:
     cv::Mat currentDescriptors;
     parameters parameter;
     int id = 0;
-
+    int lastLoopClosure_;
    //std::vector<KeyFrame> histKFs_
 };

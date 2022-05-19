@@ -6,10 +6,13 @@ LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
                                                     featureType_(1),
                                                     featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
-        
+        lastLoopClosure_ = -1;
     }
 
 bool LoopClosingTool::detect_loop(Matchdata& point_match){
+    if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < frameGap_){
+        return false;
+    }
     IC(currentKeypoints.size());
     //create a temporal current keyframe
     cv::Mat cur_desc = currentDescriptors;
@@ -71,12 +74,13 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
     }
     pDB_->add(cur_desc);
     generateKeyframe();
+    lastLoopClosure_ = Min_Id;
     if (loop_detected){
         point_match = genearteNewGlobalId(keyframes_[Min_Id],returned_matches);
     }
     //keyframes.push_back(img);
     //min-index ?
-
+    
     return loop_detected;
 }
 int LoopClosingTool::ransac_featureMatching(Keyframe& candidate){

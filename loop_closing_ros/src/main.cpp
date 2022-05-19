@@ -24,6 +24,7 @@ public:
         closingLine_pub = nh->advertise<visualization_msgs::Marker>("loop_closing_line", 10);
         //keyframe_pub = nh->advertise<frontend::Keyframe>("loop_closing/keyframe", 10);
         match_pub = nh->advertise<frontend::Match>("loop_closing/match", 10);
+        frameCount = 0;
     }
     void run_loopClosure(const frontend::Keyframe::ConstPtr& msg,const inekf_msgs::StateConstPtr &stateMsg,int frameID){
         keyframes.push_back(*msg);
@@ -125,7 +126,7 @@ public:
         line_strip.points.push_back(p_current);
         line_strip.points.push_back(matching_point);
         closingLine_pub.publish(line_strip);
-
+        
 
         
     }
@@ -158,6 +159,8 @@ public:
 
         }
     }
+    int frameCount;
+
 private: 
     LoopClosingTool* loopDetector_;
     ros::NodeHandle* nh_;
@@ -169,16 +172,16 @@ private:
     std::unordered_map<int, inekf_msgs::State> states;
     inekf_msgs::State current_state_;
     int markerId;
-
+   
     //subscriber
 
 };
 //loop closing entry
 loop_closing_ros loopclosing;
 void filterCallback(const inekf_msgs::StateConstPtr &stateMsg,const frontend::Keyframe::ConstPtr& Framemsg) {
-
-    loopclosing.run_loopClosure(Framemsg,stateMsg,Framemsg->frameID);
-    ROS_INFO("I heard: [%d]", Framemsg->frameID);
+    loopclosing.run_loopClosure(Framemsg,stateMsg,loopclosing.frameCount);
+    ROS_INFO("I heard: [%d],  [%d]", loopclosing.frameCount,Framemsg->frameID);
+    loopclosing.frameCount++;
 };
 
 

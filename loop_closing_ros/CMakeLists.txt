@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   frontend
   inekf_msgs
+  geometry_msgs
   message_filters
 )
 

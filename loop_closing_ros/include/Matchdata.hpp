@@ -9,10 +9,11 @@
 #include <iostream>
 class Matchdata{
 public:
-    Matchdata(int curId,int oldId, vector<int> point_current,vector<int> point_old):curId_(curId),
+    Matchdata(int curId,int oldId, vector<int> point_current,vector<int> point_old,vector<cv::KeyPoint> newmeasurement):curId_(curId),
                                                                                     oldId_(oldId),
                                                                                     point_current_(point_current),
-                                                                                    point_old_(point_old){}
+                                                                                    point_old_(point_old),
+                                                                                    newmeasurement_(newmeasurement){}
                                                                                     
     Matchdata(){};
     //TODO: make below code private, and set up interaface function
@@ -21,4 +22,5 @@ public:
     //vector<cv::DMatch> ransac_matches;
     vector<int> point_current_;
     vector<int> point_old_;
+    vector<cv::KeyPoint> newmeasurement_;
 };

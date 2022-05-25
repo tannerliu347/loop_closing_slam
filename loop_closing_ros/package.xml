@@ -58,6 +58,7 @@
   <build_depend>frontend</build_depend>
   <build_depend>inekf_msgs</build_depend>
   <build_depend>message_filters</build_depend>
+  <build_depend>geometry_msgs</build_depend>
   <build_export_depend>cv_bridge</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
@@ -65,6 +66,7 @@
   <build_export_depend>std_msgs</build_export_depend>
   <build_export_depend>tf</build_export_depend>
   <build_export_depend>frontend</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
@@ -74,6 +76,7 @@
   <exec_depend>frontend</exec_depend>
   <exec_depend>inekf_msgs</exec_depend>
   <exec_depend>message_filters</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
 
 
 

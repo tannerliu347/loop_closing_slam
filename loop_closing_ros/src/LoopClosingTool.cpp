@@ -339,12 +339,14 @@ Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& candidate,vector<cv::DM
     std::vector<int> result_globalId = current_globalIDs;
     std::vector<int> cur_pointId;
     std::vector<int> old_pointId;
+    std::vector<cv::KeyPoint> newmeasurement;
     for (int i = 0; i < returned_matches.size(); i ++){
         //ic(returned_matches[i].queryIdx.)
         cur_pointId.push_back( current_globalIDs[returned_matches[i].trainIdx]);
         old_pointId.push_back( candidate_globalId[returned_matches[i].queryIdx]);
+        newmeasurement.emplace_back(currentKeypoints[returned_matches[i].trainIdx]);
     }
-    Matchdata point_match(currentGlobalKeyframeId,candidate.globalKeyframeID,cur_pointId,old_pointId);
+    Matchdata point_match(currentGlobalKeyframeId,candidate.globalKeyframeID,cur_pointId,old_pointId,newmeasurement);
     //current_globalIDs = result_globalId;
     // return result_globalId;
     return point_match;

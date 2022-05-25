@@ -99,6 +99,15 @@ public:
         match_msg.oldId = point_match.oldId_;
         match_msg.curPoint = point_match.point_current_;
         match_msg.oldPoint = point_match.point_old_;
+        vector<geometry_msgs::Point> measurement;
+        for (auto keypoint:point_match.newmeasurement_){
+            geometry_msgs::Point newPoint;
+            newPoint.x = keypoint.pt.x;
+            newPoint.y = keypoint.pt.y;
+            measurement.push_back(newPoint);
+        }
+        match_msg.measurement = measurement;
+        
         match_pub.publish(match_msg);
     }
     void draw_line(int i){

@@ -7,10 +7,13 @@ LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
                                                     featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
+        currentGlobalKeyframeId = 0;
     }
 
 bool LoopClosingTool::detect_loop(Matchdata& point_match){
-    if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < frameGap_){
+    IC(currentGlobalKeyframeId);
+    IC(lastLoopClosure_);
+    if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < 30){
         return false;
     }
     IC(currentKeypoints.size());
@@ -74,8 +77,9 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
     }
     pDB_->add(cur_desc);
     generateKeyframe();
-    lastLoopClosure_ = Min_Id;
+    
     if (loop_detected){
+        lastLoopClosure_ = currentGlobalKeyframeId;
         point_match = genearteNewGlobalId(keyframes_[Min_Id],returned_matches);
     }
     //keyframes.push_back(img);
@@ -209,7 +213,8 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
 void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
     currentImage = img;
     currentDepth = depth;
-    currentGlobalKeyframeId =  gloablKeyframeId;
+    //currentGlobalKeyframeId =  gloablKeyframeId;
+    currentGlobalKeyframeId++;
     current_globalIDs = globalID;
 
 }

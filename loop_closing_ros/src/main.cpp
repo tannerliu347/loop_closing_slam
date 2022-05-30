@@ -186,7 +186,7 @@ public:
             line_strip.color.r = 1.0;
             line_strip.color.a = 1.0;
             line_strip.scale.x = 0.1;
-            line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+            line_strip.type = visualization_msgs::Marker::LINE_LIST;
             //matching point
             geometry_msgs::Point matching_point;
             matching_point.x = states[i].position.x;

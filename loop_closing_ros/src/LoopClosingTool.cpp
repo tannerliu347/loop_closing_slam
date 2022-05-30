@@ -2,9 +2,9 @@
 #include <algorithm>
 #include <opencv2/xfeatures2d.hpp>
 LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
-                                                    frameGap_(15), 
-                                                    minScoreAccept_(0.01),
-                                                    featureType_(1),
+                                                    frameGap_(30), 
+                                                    minScoreAccept_(0.02),
+                                                    featureType_(2),
                                                     featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
@@ -14,9 +14,9 @@ LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
 bool LoopClosingTool::detect_loop(Matchdata& point_match){
     IC(currentGlobalKeyframeId);
     IC(lastLoopClosure_);
-    if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < 30){
-        return false;
-    }
+    // if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < 30){
+    //     return false;
+    // }
     IC(currentKeypoints.size());
     //create a temporal current keyframe
     cv::Mat cur_desc = currentDescriptors;
@@ -38,7 +38,6 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
     int Min_Id = INT_MAX;
     // Store retured match
     vector<cv::DMatch> returned_matches;
-
     if (rets.size() >= 1 && rets[0].Score > 0.011){
         for (int i = 1; i < rets.size() && i < top ; i ++ ){
             DBoW3::Result r = rets[i];
@@ -187,25 +186,25 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
     currentDescriptors.release();
     currentKeypoints = Keypoints;
     cv::Ptr<cv::FeatureDetector> detector;
-    featureType_ = 1;
+   
     switch (featureType_) {
-    case 1:
+    case 0:
            detector = cv::ORB::create();
            break;
-    case 2:
+    case 1:
     #ifdef COMPILE_WITH_SURF
             detector = cv::xfeatures2d::SURF::create(featureCount_);
     #else
            throw std::runtime_error("Surf not compiled");
     #endif
             break;
-        case 3:
+        case 2:
             detector = cv::SIFT::create();
             break;
-        case 4:
+        case 3:
             detector = cv::KAZE::create();
             break;
-        case 5:
+        case 4:
             detector = cv::AKAZE::create();
             break;
         }
@@ -335,7 +334,6 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& candidate){
         //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
         //cv::imshow("matches_window", imMatches);
         //cv::waitKey(1);
-        IC("create image");
         cv::waitKey(1);
     } catch (...) {
         cout << "xxxxxxxxxxxxxxxxxxxxxx" << endl;

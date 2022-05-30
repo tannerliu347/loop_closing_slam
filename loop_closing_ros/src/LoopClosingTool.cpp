@@ -4,14 +4,30 @@
 LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
                                                     frameGap_(15), 
                                                     minScoreAccept_(0.01),
-                                                    featureType_(1),
+                                                    featureType_(3),
                                                     featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
         currentGlobalKeyframeId = 0;
+
     }
 
 bool LoopClosingTool::detect_loop(Matchdata& point_match){
+    if(currentGlobalKeyframeId == 66){
+        IC(v_features.size());
+        const int k = 7;
+        const int L = 5;
+        const DBoW3::WeightingType weight = DBoW3::TF_IDF;
+        const DBoW3::ScoringType score = DBoW3::L1_NORM;
+
+        voc = DBoW3::Vocabulary(k, L, weight, score);
+        voc.create(v_features);
+        //voc.save("/root/ws/curly_slam/catkin_ws/cheetah.yml.gz");
+        DBoW3::Database db(voc, false, 0);
+        db.save("/root/ws/curly_slam/catkin_ws/cheetah.yml.gz");
+    }else{  
+        v_features.push_back(currentDescriptors);
+    }
     IC(currentGlobalKeyframeId);
     IC(lastLoopClosure_);
     if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < 30){
@@ -187,7 +203,6 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
     currentDescriptors.release();
     currentKeypoints = Keypoints;
     cv::Ptr<cv::FeatureDetector> detector;
-    featureType_ = 1;
     switch (featureType_) {
     case 1:
            detector = cv::ORB::create();

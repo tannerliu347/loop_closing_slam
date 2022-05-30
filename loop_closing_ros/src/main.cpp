@@ -186,7 +186,9 @@ public:
             line_strip.color.r = 1.0;
             line_strip.color.a = 1.0;
             line_strip.scale.x = 0.1;
-            line_strip.type = visualization_msgs::Marker::LINE_LIST;
+            line_strip.scale.y = 0.1;
+            line_strip.scale.z = 0.1;
+            line_strip.type = visualization_msgs::Marker::LINE_STRIP;
             //matching point
             geometry_msgs::Point matching_point;
             matching_point.x = states[i].position.x;
@@ -241,7 +243,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "loop_closing");
   ros::NodeHandle nh;
-  DBoW3::Vocabulary voc("/root/ws/curly_slam/catkin_ws/src/loop_closing_slam/data/orbvoc.dbow3");
+  DBoW3::Vocabulary voc("/root/ws/curly_slam/catkin_ws/src/loop_closing_slam/data/cheetah.yml.gz");
   DBoW3::Database db(voc, false, 0);
   LoopClosingTool lct(&db);
   //set up loop closing

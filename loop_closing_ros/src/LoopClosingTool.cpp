@@ -3,20 +3,20 @@
 #include <opencv2/xfeatures2d.hpp>
 LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
                                                     frameGap_(30), 
-                                                    minScoreAccept_(0.02),
+                                                    minScoreAccept_(0.36),
                                                     featureType_(2),
                                                     featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
-        currentGlobalKeyframeId = 0;
+        //currentGlobalKeyframeId = 0;
     }
 
 bool LoopClosingTool::detect_loop(Matchdata& point_match){
     IC(currentGlobalKeyframeId);
     IC(lastLoopClosure_);
-    // if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < 30){
-    //     return false;
-    // }
+    if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < frameGap_){
+        return false;
+    }
     IC(currentKeypoints.size());
     //create a temporal current keyframe
     cv::Mat cur_desc = currentDescriptors;
@@ -44,7 +44,6 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
             // if (abs(int(r.Id) - int(rets[i-1].Id)) < 3 ){
             //     continue;
             // }
-            IC(r.Score);
             if (r.Score < minScoreAccept_) {
         // pDB_->addImg(img);
         // //histKFs_.push_back(kf);
@@ -59,7 +58,7 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
             eliminateOutliersPnP(keyframes_[r.Id]);
             inlier = ransac_matches.size();
             //int inlier = 100;
-            int inlierThresh = 10;
+            int inlierThresh = 12;
             if (inlier > inlierThresh){
                 std::cout << "Cur frame: " << pDB_->size() << std::endl;
                 int Curframe =  pDB_->size() - 1;
@@ -215,8 +214,8 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
 void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
     currentImage = img;
     currentDepth = depth;
-    //currentGlobalKeyframeId =  gloablKeyframeId;
-    currentGlobalKeyframeId++;
+    currentGlobalKeyframeId =  gloablKeyframeId;
+    //currentGlobalKeyframeId++;
     current_globalIDs = globalID;
 
 }
@@ -330,7 +329,7 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& candidate){
         //cv::imshow("matches_window", imMatches);
         cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
         cv::imshow("image", imMatches);
-        cv::imwrite("/root/ws/curly_slam/catkin_ws/result.bmp",imMatches );
+        cv::imwrite("/root/ws/curly_slam/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
         //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
         //cv::imshow("matches_window", imMatches);
         //cv::waitKey(1);

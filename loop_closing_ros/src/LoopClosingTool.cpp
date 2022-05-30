@@ -1,5 +1,6 @@
 #include "LoopClosingTool.hpp"
 #include <algorithm>
+#include <opencv2/xfeatures2d.hpp>
 LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
                                                     frameGap_(15), 
                                                     minScoreAccept_(0.01),
@@ -178,7 +179,7 @@ void LoopClosingTool::create_feature(){
             detector = cv::AKAZE::create();
             break;
         }
-    detector->detect(currentImage, currentKeypoints);
+    //descriptor->compute(currentImage, currentKeypoints, currentDescriptors);
     detector->compute(currentImage, currentKeypoints, currentDescriptors);
 }
 void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
@@ -208,6 +209,8 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
             detector = cv::AKAZE::create();
             break;
         }
+    // detector->detect(currentImage, currentKeypoints);
+    auto descriptor = cv::xfeatures2d::BEBLID::create(0.75);
     detector->compute(currentImage,Keypoints, currentDescriptors);
 }
 void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
@@ -321,19 +324,21 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& candidate){
     std::vector<cv::KeyPoint> lastKeypoints = candidate.keypoints;
     cv::Mat imMatches;
     //TODO: add option for debug image
-    // cv::drawMatches(currentImage,currentKeypoints, lastImage, lastKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
-    // cv::imshow("matches_window", imMatches);
-    // cv::waitKey(1);
-    // cv::imwrite("result" +std::to_string(id) + ".png",imMatches );
+ 
     id++;
     try {
-        
         cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
-        cv::imshow("matches_window", imMatches);
+        //cv::imshow("matches_window", imMatches);
+        cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
+        cv::imshow("image", imMatches);
+        cv::imwrite("/root/ws/curly_slam/catkin_ws/result.bmp",imMatches );
+        //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+        //cv::imshow("matches_window", imMatches);
         //cv::waitKey(1);
+        IC("create image");
         cv::waitKey(1);
     } catch (...) {
-        cout << "ERROR" << endl;
+        cout << "xxxxxxxxxxxxxxxxxxxxxx" << endl;
     }
     cout << "match size: " << good_matches.size() << "," << ransac_matches.size() << endl;
 }
@@ -349,6 +354,8 @@ Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& candidate,vector<cv::DM
         //ic(returned_matches[i].queryIdx.)
         cur_pointId.push_back( current_globalIDs[returned_matches[i].trainIdx]);
         old_pointId.push_back( candidate_globalId[returned_matches[i].queryIdx]);
+        IC(returned_matches[i].trainIdx);
+        IC(returned_matches[i].queryIdx);
         newmeasurement.emplace_back(currentKeypoints[returned_matches[i].trainIdx]);
     }
     Matchdata point_match(currentGlobalKeyframeId,candidate.globalKeyframeID,cur_pointId,old_pointId,newmeasurement);

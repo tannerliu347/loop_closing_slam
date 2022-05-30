@@ -113,8 +113,6 @@ private:
     cv::Mat currentDescriptors;
 
     std::vector<cv::Mat> v_features;
-
-    DBoW3::Vocabulary voc;
     parameters parameter;
     int id = 0;
     int lastLoopClosure_;

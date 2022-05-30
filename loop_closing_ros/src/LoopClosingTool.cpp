@@ -13,14 +13,14 @@ LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
     }
 
 bool LoopClosingTool::detect_loop(Matchdata& point_match){
-    if(currentGlobalKeyframeId == 66){
+    if(currentGlobalKeyframeId == 70){
         IC(v_features.size());
         const int k = 7;
         const int L = 5;
         const DBoW3::WeightingType weight = DBoW3::TF_IDF;
         const DBoW3::ScoringType score = DBoW3::L1_NORM;
 
-        voc = DBoW3::Vocabulary(k, L, weight, score);
+        DBoW3::Vocabulary voc(k, L, weight, score);
         voc.create(v_features);
         //voc.save("/root/ws/curly_slam/catkin_ws/cheetah.yml.gz");
         DBoW3::Database db(voc, false, 0);

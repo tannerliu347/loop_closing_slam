@@ -157,6 +157,8 @@ public:
         line_strip.color.r = 1.0;
         line_strip.color.a = 1.0;
         line_strip.scale.x = 0.1;
+        line_strip.scale.y = 0.1;
+        line_strip.scale.z = 0.1;
         //matching point
         geometry_msgs::Point matching_point;
         matching_point.x = states[i].position.x;
@@ -241,7 +243,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "loop_closing");
   ros::NodeHandle nh;
-  DBoW3::Vocabulary voc("/root/ws/curly_slam/catkin_ws/src/loop_closing_slam/data/cheetah.dbow3");
+  DBoW3::Vocabulary voc("/root/ws/curly_slam/catkin_ws/src/loop_closing_slam/data/orbvoc.dbow3");
   DBoW3::Database db(voc, false, 0);
   LoopClosingTool lct(&db);
   //set up loop closing
@@ -250,7 +252,7 @@ int main(int argc, char **argv)
   string keyframe_topic;
   string state_topic;
   nh.param<string>("depth_topic",  keyframe_topic, "/frontend/keyframe");
-  nh.param<string>("state_topic", state_topic,  "/cheetah/inekf_estimation/inekf_state");
+  nh.param<string>("state_topic", state_topic,  "/cassie/inekf_state");
   //message filters
   message_filters::Subscriber<frontend::Keyframe> keyframe_sub_(nh, keyframe_topic, 1);
   message_filters::Subscriber<inekf_msgs::State> state_sub_(nh, state_topic, 5000);

@@ -3,7 +3,7 @@
 #include <opencv2/xfeatures2d.hpp>
 LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
                                                     frameGap_(30), 
-                                                    minScoreAccept_(0.01),
+                                                    minScoreAccept_(0.15),
                                                     featureType_(0),
                                                     featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
@@ -139,8 +139,8 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& candidate){
             good_matches.push_back(normalMatches[i]);
         }
     }
-    good_matches.clear();
-    good_matches = matches;
+    // good_matches.clear();
+    // good_matches = matches;
      for (int i = 0; i < good_matches.size(); i++) {
             goodKeypoints.push_back(cur_keypoints[good_matches[i].trainIdx]);
             good_lastKeypoints.push_back(candidate_keypoints[good_matches[i].queryIdx]);

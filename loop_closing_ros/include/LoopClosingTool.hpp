@@ -41,7 +41,7 @@ struct parameters{
         CX = 323.6305236816406;
         CY = 242.8762664794922;
         RansacThresh2d = 50;
-        top_match = 5;
+        top_match = 7;
         PIXEL_TO_METER_SCALEFACTOR = 0.001;
         ransacReprojectionError = 30;
         ransacIterations = 1000;

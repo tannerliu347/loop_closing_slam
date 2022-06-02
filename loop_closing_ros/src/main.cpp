@@ -244,9 +244,9 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "loop_closing");
   ros::NodeHandle nh;
-  DBoW3::Vocabulary voc("/root/ws/curly_slam/catkin_ws/src/loop_closing_slam/data/cheetah_orbb.dbow3");
-  DBoW3::Database db(voc, false, 0);
-  LoopClosingTool lct(&db);
+  fbow::Vocabulary voc;
+  voc.readFromFile("/root/ws/curly_slam/catkin_ws/obrbb.fbow");
+  LoopClosingTool lct(&voc);
   //set up loop closing
   loopclosing.set_core(&nh,&lct);
   //get parameters

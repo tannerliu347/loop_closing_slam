@@ -12,10 +12,13 @@
 #include <icecream.hpp>
 #include <string>
 #include <DBoW3/DBoW3.h>
+#include <fbow/fbow.h>
+#include <fbow/vocabulary_creator.h>
 #include "opencv2/calib3d/calib3d.hpp"
 #include "Keyframe.hpp"
 #include <unordered_map>
 #include "Matchdata.hpp"
+#include <queue>
 // class keyframe{
 
 // };
@@ -31,6 +34,7 @@ struct parameters{
     double RansacThresh2d;
     int top_match;
     int framegap;
+    bool create_databasefile;
     parameters(double fx,double fy,double cx,double cy,double u,double v):FX(fx),
                                                                                 FY(fy),
                                                                                 CX(cx),
@@ -46,13 +50,14 @@ struct parameters{
         ransacReprojectionError = 30;
         ransacIterations = 1000;
         framegap = 5;
+        create_databasefile = false;
     };
 
 };
 class LoopClosingTool{
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    LoopClosingTool(DBoW3::Database* pDB);
+    LoopClosingTool(fbow::Vocabulary* pDB);
    // bool detect_loop_test(const cv::Mat& img);
     bool detect_loop(Matchdata& point_match);
     // remove wrong pair with ransac
@@ -81,7 +86,7 @@ public:
     void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
     Matchdata genearteNewGlobalId(Keyframe& candidate,vector<cv::DMatch>& returned_matches);
 private:
-    DBoW3::Database* pDB_;
+    fbow::Vocabulary* pDB_;
     unsigned int frameGap_; // We consider frames within this range as too close
     float minScoreAccept_; // Disregard ones lower than this
     Eigen::MatrixXd* loopClosureMatch_;
@@ -110,6 +115,7 @@ private:
     std::vector<cv::KeyPoint> currentKeypoints;
     std::vector<cv::KeyPoint> goodKeypoints;
     std::vector<cv::KeyPoint> good_lastKeypoints;
+    std::vector<cv::Mat> descriptors;
     cv::Mat currentDescriptors;
     parameters parameter;
     int id = 0;

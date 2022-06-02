@@ -1,9 +1,9 @@
 #include "LoopClosingTool.hpp"
 #include <algorithm>
 #include <opencv2/xfeatures2d.hpp>
-LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
-                                                    frameGap_(30), 
-                                                    minScoreAccept_(0.15),
+LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB),
+                                                    frameGap_(10), 
+                                                    minScoreAccept_(0.10),
                                                     featureType_(0),
                                                     featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
@@ -13,23 +13,51 @@ LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
 
 bool LoopClosingTool::detect_loop(Matchdata& point_match){
     IC(currentGlobalKeyframeId);
-    IC(lastLoopClosure_);
+    
     if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < frameGap_){
         return false;
     }
-    IC(currentKeypoints.size());
+
+    //create vocab file
+    if(currentGlobalKeyframeId == 50 && parameter.create_databasefile){
+        fbow::VocabularyCreator::Params params;
+        params.k = 10;
+        params.L = 5;
+        params.nthreads=1;
+        params.maxIters=0;
+        fbow::VocabularyCreator vocabCat;
+        fbow::Vocabulary vocabulary;
+        vocabCat.create(vocabulary,descriptors,"hf-net",params);
+        vocabulary.saveToFile("/root/ws/curly_slam/catkin_ws/obrbb.fbow");
+    }
+    class Compare_score{
+        public:
+        bool operator() (pair<int,double>& a, pair<int,double>& b) {
+            return a.second < b.second;
+        }
+    };
     //create a temporal current keyframe
     cv::Mat cur_desc = currentDescriptors;
     cv::Mat img = currentImage;
-    DBoW3::QueryResults rets;
     int maxId = std::max(int(pDB_->size() - frameGap_),0);
     int top = parameter.top_match;
-    pDB_->query(cur_desc, rets,top, maxId);
+    std::priority_queue<pair<int,double>, std::vector<pair<int,double>>,Compare_score> pq;
     bool loop_detected = false;
+    IC(descriptors.size());
+    IC(int(descriptors.size()) - int(frameGap_));
+    for (int i = 0; i < (int(descriptors.size()) - int(frameGap_)); i ++ ){
+        IC(descriptors.size());
+        fbow::fBow bowvector_cur;
+        bowvector_cur = pDB_->transform(currentDescriptors);
+        fbow::fBow bowvector_old;
+        bowvector_old = pDB_->transform(descriptors[i]);
+        double score = fbow::fBow::score(bowvector_cur,bowvector_old);
+        pq.push( std::make_pair (i, score));
+    }
     // simple logic check to filter out unwanted
-    if (rets.empty()) {
-        pDB_->add(cur_desc);
+    if (pq.empty()) {
         goodKeypoints.clear();
+        descriptors.push_back(currentDescriptors);
         goodKeypoints = currentKeypoints;
         generateKeyframe();
         return false;
@@ -38,13 +66,18 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
     int Min_Id = INT_MAX;
     // Store retured match
     vector<cv::DMatch> returned_matches;
-    if (rets.size() >= 1 && rets[0].Score > 0.011){
-        for (int i = 1; i < rets.size() && i < top ; i ++ ){
-            DBoW3::Result r = rets[i];
-            // if (abs(int(r.Id) - int(rets[i-1].Id)) < 3 ){
-            //     continue;
-            // }
-            if (r.Score < minScoreAccept_) {
+    if (pq.size() >= 0){
+        for (int i = 0; i < top && !pq.empty() ; i ++ ){
+            IC(pq.top().first);
+            IC(pq.top().second);
+            int current_id = pq.top().first;
+            double current_score = pq.top().second;
+            pq.pop();
+        //     DBoW3::Result r = rets[i];
+        //     // if (abs(int(r.Id) - int(rets[i-1].Id)) < 3 ){
+        //     //     continue;
+        //     // }
+            if (current_score < minScoreAccept_) {
         // pDB_->addImg(img);
         // //histKFs_.push_back(kf);
         // //std::cout << "added img\n";
@@ -52,20 +85,16 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
             continue;
             } 
             
-            IC(int(r.Id));
-            IC(r.Score);
-            int inlier = ransac_featureMatching(keyframes_[r.Id]);
-            eliminateOutliersPnP(keyframes_[r.Id]);
+            int inlier = ransac_featureMatching(keyframes_[current_id]);
+            eliminateOutliersPnP(keyframes_[current_id]);
             inlier = ransac_matches.size();
             //int inlier = 100;
             int inlierThresh = 12;
             if (inlier > inlierThresh){
-                std::cout << "Cur frame: " << pDB_->size() << std::endl;
-                int Curframe =  pDB_->size() - 1;
                 loop_detected = true;
-                if (int(r.Id) < Min_Id){
+                if (current_id < Min_Id){
                     returned_matches.assign(ransac_matches.begin(), ransac_matches.end());
-                    Min_Id = int(r.Id);
+                    Min_Id = current_id;
                 }            
             }
             good_matches.clear();
@@ -74,7 +103,7 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
     }else{
        loop_detected = false; 
     }
-    pDB_->add(cur_desc);
+    //pDB_->add(cur_desc);
     generateKeyframe();
     
     if (loop_detected){
@@ -83,7 +112,7 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
     }
     //keyframes.push_back(img);
     //min-index ?
-    
+    descriptors.push_back(currentDescriptors);
     return loop_detected;
 }
 int LoopClosingTool::ransac_featureMatching(Keyframe& candidate){

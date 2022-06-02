@@ -28,6 +28,7 @@ find_package(DBoW3 REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Sophus REQUIRED)
+find_package(fbow REQUIRED)
 #remove later debug purpose
 find_package(IcecreamCpp)
 include_directories(${IcecreamCpp_INCLUDE_DIRS})
@@ -143,7 +144,7 @@ ${Boost_LIBRARIES}
 boost_system)
 
 add_executable(main ${PROJECT_SOURCE_DIR}/src/main.cpp)
-target_link_libraries(main PUBLIC ${PROJECT_NAME}  ${catkin_LIBRARIES} Sophus::Sophus)
+target_link_libraries(main PUBLIC ${PROJECT_NAME}  ${catkin_LIBRARIES} Sophus::Sophus ${fbow_LIBS})
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

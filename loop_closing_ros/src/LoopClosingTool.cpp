@@ -46,7 +46,6 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
     IC(descriptors.size());
     IC(int(descriptors.size()) - int(frameGap_));
     for (int i = 0; i < (int(descriptors.size()) - int(frameGap_)); i ++ ){
-        IC(descriptors.size());
         fbow::fBow bowvector_cur;
         bowvector_cur = pDB_->transform(currentDescriptors);
         fbow::fBow bowvector_old;
@@ -68,8 +67,6 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
     vector<cv::DMatch> returned_matches;
     if (pq.size() >= 0){
         for (int i = 0; i < top && !pq.empty() ; i ++ ){
-            IC(pq.top().first);
-            IC(pq.top().second);
             int current_id = pq.top().first;
             double current_score = pq.top().second;
             pq.pop();

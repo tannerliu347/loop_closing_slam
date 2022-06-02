@@ -245,7 +245,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "loop_closing");
   ros::NodeHandle nh;
   fbow::Vocabulary voc;
-  voc.readFromFile("/root/ws/curly_slam/catkin_ws/obrbb.fbow");
+  voc.readFromFile("/root/ws/curly_slam/catkin_ws/sift.fbow");
   LoopClosingTool lct(&voc);
   //set up loop closing
   loopclosing.set_core(&nh,&lct);

@@ -3,8 +3,8 @@
 #include <opencv2/xfeatures2d.hpp>
 LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB),
                                                     frameGap_(10), 
-                                                    minScoreAccept_(0.10),
-                                                    featureType_(0),
+                                                    minScoreAccept_(0.18),
+                                                    featureType_(2),
                                                     featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
@@ -28,7 +28,7 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
         fbow::VocabularyCreator vocabCat;
         fbow::Vocabulary vocabulary;
         vocabCat.create(vocabulary,descriptors,"hf-net",params);
-        vocabulary.saveToFile("/root/ws/curly_slam/catkin_ws/obrbb.fbow");
+        vocabulary.saveToFile("/root/ws/curly_slam/catkin_ws/sift.fbow");
     }
     class Compare_score{
         public:
@@ -67,6 +67,8 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
     vector<cv::DMatch> returned_matches;
     if (pq.size() >= 0){
         for (int i = 0; i < top && !pq.empty() ; i ++ ){
+            IC(pq.top().first);
+            IC(pq.top().second);
             int current_id = pq.top().first;
             double current_score = pq.top().second;
             pq.pop();
@@ -86,7 +88,7 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
             eliminateOutliersPnP(keyframes_[current_id]);
             inlier = ransac_matches.size();
             //int inlier = 100;
-            int inlierThresh = 12;
+            int inlierThresh = 15;
             if (inlier > inlierThresh){
                 loop_detected = true;
                 if (current_id < Min_Id){
@@ -234,8 +236,8 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
             break;
         }
     // detector->detect(currentImage, currentKeypoints);
-    auto descriptor = cv::xfeatures2d::BEBLID::create(0.75);
-    descriptor->compute(currentImage,Keypoints, currentDescriptors);
+    //auto descriptor = cv::xfeatures2d::BEBLID::create(0.75);
+    detector->compute(currentImage,Keypoints, currentDescriptors);
 }
 void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
     currentImage = img;
@@ -351,6 +353,9 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& candidate){
  
     id++;
     try {
+        if(ransac_matches.size() < 14){
+            return;
+        }
         cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
         //cv::imshow("matches_window", imMatches);
         cv::namedWindow("image", cv::WINDOW_AUTOSIZE);

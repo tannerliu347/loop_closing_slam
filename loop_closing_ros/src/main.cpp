@@ -221,8 +221,9 @@ private:
 //loop closing entry
 loop_closing_ros loopclosing;
 void filterCallback(const inekf_msgs::StateConstPtr &stateMsg,const frontend::Keyframe::ConstPtr& Framemsg) {
-    loopclosing.run_loopClosure(Framemsg,stateMsg,loopclosing.frameCount);
+
     ROS_INFO("I heard: [%d],  [%d]", loopclosing.frameCount,Framemsg->frameID);
+    loopclosing.run_loopClosure(Framemsg,stateMsg,loopclosing.frameCount);
     loopclosing.frameCount++;
 };
 
@@ -243,7 +244,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "loop_closing");
   ros::NodeHandle nh;
-  DBoW3::Vocabulary voc("/root/ws/curly_slam/catkin_ws/src/loop_closing_slam/data/orbvoc.dbow3");
+  DBoW3::Vocabulary voc("/root/ws/curly_slam/catkin_ws/src/loop_closing_slam/data/cheetah_orbb.dbow3");
   DBoW3::Database db(voc, false, 0);
   LoopClosingTool lct(&db);
   //set up loop closing

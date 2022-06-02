@@ -209,7 +209,7 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
         }
     // detector->detect(currentImage, currentKeypoints);
     auto descriptor = cv::xfeatures2d::BEBLID::create(0.75);
-    detector->compute(currentImage,Keypoints, currentDescriptors);
+    descriptor->compute(currentImage,Keypoints, currentDescriptors);
 }
 void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
     currentImage = img;

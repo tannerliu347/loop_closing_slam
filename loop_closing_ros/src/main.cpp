@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "loop_closing");
   ros::NodeHandle nh;
-  DBoW3::Vocabulary voc("/root/ws/curly_slam/catkin_ws/src/loop_closing_slam/data/cheetah.yml.gz");
+  DBoW3::Vocabulary voc("/root/ws/curly_slam/catkin_ws/src/loop_closing_slam/data/orbvoc.dbow3");
   DBoW3::Database db(voc, false, 0);
   LoopClosingTool lct(&db);
   //set up loop closing

@@ -3,12 +3,12 @@
 #include <opencv2/xfeatures2d.hpp>
 LoopClosingTool::LoopClosingTool(DBoW3::Database* pDB):pDB_(pDB),
                                                     frameGap_(30), 
-                                                    minScoreAccept_(0.36),
-                                                    featureType_(2),
+                                                    minScoreAccept_(0.01),
+                                                    featureType_(0),
                                                     featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
-        //currentGlobalKeyframeId = 0;
+        currentGlobalKeyframeId = 0;
     }
 
 bool LoopClosingTool::detect_loop(Matchdata& point_match){
@@ -168,7 +168,7 @@ void LoopClosingTool::create_feature(){
             detector = cv::SIFT::create(featureCount_);
     #else
             throw std::runtime_error("Sift not compiled");
-    #endif
+    #endif-6, 
             break;
         case 4:
             detector = cv::KAZE::create();
@@ -214,8 +214,8 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
 void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
     currentImage = img;
     currentDepth = depth;
-    currentGlobalKeyframeId =  gloablKeyframeId;
-    //currentGlobalKeyframeId++;
+    //currentGlobalKeyframeId =  gloablKeyframeId;
+    currentGlobalKeyframeId++;
     current_globalIDs = globalID;
 
 }

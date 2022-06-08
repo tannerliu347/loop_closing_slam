@@ -60,8 +60,9 @@ public:
     LoopClosingTool(fbow::Vocabulary* pDB);
    // bool detect_loop_test(const cv::Mat& img);
     bool detect_loop(Matchdata& point_match);
+    bool find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match);
     // remove wrong pair with ransac
-    int ransac_featureMatching(Keyframe& candidate);
+    int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
     //create feature
     void create_feature();
     void create_feature(std::vector<cv::KeyPoint> Keypoints);
@@ -77,7 +78,7 @@ public:
         this->point_3d.clear();
         this->point_3d = point_3d;
     }
-    void eliminateOutliersPnP(Keyframe& candidate);
+    void eliminateOutliersPnP(Keyframe& current,Keyframe& candidate);
     //update this
     void create_camera_p(){
         parameter = parameters();

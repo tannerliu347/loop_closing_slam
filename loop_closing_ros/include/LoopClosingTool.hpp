@@ -40,15 +40,15 @@ struct parameters{
                                                                                 CX(cx),
                                                                                 CY(cy){};
     parameters(){
-        FX = 617.552978515625;
-        FY = 618.0050659179688;
-        CX = 323.6305236816406;
-        CY = 242.8762664794922;
+        FX = 383.141;
+        FY = 382.908;
+        CX = 318.244;
+        CY = 246.718;
         RansacThresh2d = 50;
-        top_match = 7;
+        top_match = 10;
         PIXEL_TO_METER_SCALEFACTOR = 0.001;
-        ransacReprojectionError = 30;
-        ransacIterations = 1000;
+        ransacReprojectionError = 8;
+        ransacIterations = 100;
         framegap = 5;
         create_databasefile = false;
     };

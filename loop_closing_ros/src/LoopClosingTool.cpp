@@ -3,7 +3,7 @@
 #include <opencv2/xfeatures2d.hpp>
 LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB),
                                                     frameGap_(10), 
-                                                    minScoreAccept_(0.10),
+                                                    minScoreAccept_(0.09),
                                                     featureType_(0),
                                                     featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
@@ -69,6 +69,7 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
         for (int i = 0; i < top && !pq.empty() ; i ++ ){
             int current_id = pq.top().first;
             double current_score = pq.top().second;
+            IC(current_score);
             pq.pop();
         //     DBoW3::Result r = rets[i];
         //     // if (abs(int(r.Id) - int(rets[i-1].Id)) < 3 ){
@@ -94,6 +95,8 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
                     Min_Id = current_id;
                 }            
             }
+            IC(current_score);
+            IC(returned_matches.size());
             good_matches.clear();
             ransac_matches.clear();
       }
@@ -165,8 +168,8 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& candidate){
             good_matches.push_back(normalMatches[i]);
         }
     }
-    // good_matches.clear();
-    // good_matches = matches;
+    good_matches.clear();
+    good_matches = matches;
      for (int i = 0; i < good_matches.size(); i++) {
             goodKeypoints.push_back(cur_keypoints[good_matches[i].trainIdx]);
             good_lastKeypoints.push_back(candidate_keypoints[good_matches[i].queryIdx]);
@@ -212,29 +215,29 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
     currentKeypoints = Keypoints;
     cv::Ptr<cv::FeatureDetector> detector;
    
-    switch (featureType_) {
-    case 0:
-           detector = cv::ORB::create();
-           break;
-    case 1:
-    #ifdef COMPILE_WITH_SURF
-            detector = cv::xfeatures2d::SURF::create(featureCount_);
-    #else
-           throw std::runtime_error("Surf not compiled");
-    #endif
-            break;
-        case 2:
-            detector = cv::SIFT::create();
-            break;
-        case 3:
-            detector = cv::KAZE::create();
-            break;
-        case 4:
-            detector = cv::AKAZE::create();
-            break;
-        }
+    // switch (featureType_) {
+    // case 0:
+    //        detector = cv::ORB::create();
+    //        break;
+    // case 1:
+    // #ifdef COMPILE_WITH_SURF
+    //         detector = cv::xfeatures2d::SURF::create(featureCount_);
+    // #else
+    //        throw std::runtime_error("Surf not compiled");
+    // #endif
+    //         break;
+    //     case 2:
+    //         detector = cv::SIFT::create();
+    //         break;
+    //     case 3:
+    //         detector = cv::KAZE::create();
+    //         break;
+    //     case 4:
+    //         detector = cv::AKAZE::create();
+    //         break;
+    //     }
     // detector->detect(currentImage, currentKeypoints);
-    auto descriptor = cv::xfeatures2d::BEBLID::create(0.75);
+    auto descriptor = cv::xfeatures2d::BEBLID::create(1.0);
     descriptor->compute(currentImage,Keypoints, currentDescriptors);
 }
 void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
@@ -355,7 +358,9 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& candidate){
         //cv::imshow("matches_window", imMatches);
         cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
         cv::imshow("image", imMatches);
-        cv::imwrite("/root/ws/curly_slam/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+        if(ransac_matches.size() > 12){
+            cv::imwrite("/root/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+        }
         //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
         //cv::imshow("matches_window", imMatches);
         //cv::waitKey(1);

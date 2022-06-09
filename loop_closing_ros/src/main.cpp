@@ -79,14 +79,14 @@ public:
         // loopDetector_->set2DfeaturePosition(feature_2d);  
         // loopDetector_->set3DfeaturePosition(feature_3d);
         loopDetector_->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
-        Matchdata point_match;
-        bool loopdetected = loopDetector_->detect_loop(point_match);
+        vector<Matchdata> point_matches;
+        bool loopdetected = loopDetector_->detect_loop(point_matches);
 
         //cv::imwrite("image"+std::to_string(keyframes.size())+".jpg",color );
         if (loopdetected){
             //update globalId
-            draw_line(point_match.oldId_);
-            publish_match(point_match);
+            draw_line(point_matches.back().oldId_);
+            publish_match(point_matches.back());
             //publish Matched data
         }
         // }else{
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "loop_closing");
   ros::NodeHandle nh;
   fbow::Vocabulary voc;
-  voc.readFromFile("/root/ws/catkin_ws/obrbb.fbow");
+  voc.readFromFile("/root/ws/curly_slam/catkin_ws/obrbb.fbow");
   LoopClosingTool lct(&voc);
   //set up loop closing
   loopclosing.set_core(&nh,&lct);

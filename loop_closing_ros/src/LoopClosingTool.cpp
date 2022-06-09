@@ -11,7 +11,7 @@ LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB),
         currentGlobalKeyframeId = 0;
     }
 
-bool LoopClosingTool::detect_loop(Matchdata& point_match){
+bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches){
     IC(currentGlobalKeyframeId);
     
     if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < frameGap_){
@@ -21,97 +21,14 @@ bool LoopClosingTool::detect_loop(Matchdata& point_match){
     descriptors.push_back(currentDescriptors);
     goodKeypoints = currentKeypoints;
     generateKeyframe();
-
+    max_loopClosureId = -1;
     //find match of current frame
     int candidate_id;
+    Matchdata point_match;
     bool loop_detected = find_connection(keyframes_.back(),candidate_id,point_match);
-
-
-
-    // //create vocab file
-    // if(currentGlobalKeyframeId == 50 && parameter.create_databasefile){
-    //     fbow::VocabularyCreator::Params params;
-    //     params.k = 10;
-    //     params.L = 5;
-    //     params.nthreads=1;
-    //     params.maxIters=0;
-    //     fbow::VocabularyCreator vocabCat;
-    //     fbow::Vocabulary vocabulary;
-    //     vocabCat.create(vocabulary,descriptors,"hf-net",params);
-    //     vocabulary.saveToFile("/root/ws/curly_slam/catkin_ws/obrbb.fbow");
-    // }
-    // class Compare_score{
-    //     public:
-    //     bool operator() (pair<int,double>& a, pair<int,double>& b) {
-    //         return a.second < b.second;
-    //     }
-    // };
-    // //create a temporal current keyframe
-    // cv::Mat cur_desc = currentDescriptors;
-    // cv::Mat img = currentImage;
-    // int maxId = std::max(int(pDB_->size() - frameGap_),0);
-    // int top = parameter.top_match;
-    // std::priority_queue<pair<int,double>, std::vector<pair<int,double>>,Compare_score> pq;
-    // bool loop_detected = false;
-    // IC(descriptors.size());
-    // IC(int(descriptors.size()) - int(frameGap_));
-    // for (int i = 0; i < (int(descriptors.size()) - int(frameGap_)); i ++ ){
-    //     fbow::fBow bowvector_cur;
-    //     bowvector_cur = pDB_->transform(currentDescriptors);
-    //     fbow::fBow bowvector_old;
-    //     bowvector_old = pDB_->transform(descriptors[i]);
-    //     double score = fbow::fBow::score(bowvector_cur,bowvector_old);
-    //     pq.push( std::make_pair (i, score));
-    // }
-    // // simple logic check to filter out unwanted
-    // if (pq.empty()) {
-    //     goodKeypoints.clear();
-    //     descriptors.push_back(currentDescriptors);
-    //     goodKeypoints = currentKeypoints;
-    //     generateKeyframe();
-    //     return false;
-    // }
-    // //make sure closet frame have a good score
-    // int Min_Id = INT_MAX;
-    // // Store retured match
-    // vector<cv::DMatch> returned_matches;
-    // if (pq.size() >= 0){
-    //     for (int i = 0; i < top && !pq.empty() ; i ++ ){
-    //         int currentloop_detectedt_score < minScoreAccept_) {
-    //     // pDB_->addImg(img);
-    //     // //histKFs_.push_back(kf);
-    //     // //std::cout << "added img\n";
-    //     // return false;
-    //         continue;
-    //         } 
-            
-    //         int inlier = ransac_featureMatching(keyframes_[current_id]);
-    //         eliminateOutliersPnP(keyframes_[current_id]);
-    //         inlier = ransac_matches.size();
-    //         //int inlier = 100;
-    //         int inlierThresh = 12;
-    //         if (inlier > inlierThresh){
-    //             loop_detected = true;
-    //             if (current_id < Min_Id){
-    //                 returned_matches.assign(ransac_matches.begin(), ransac_matches.end());
-    //                 Min_Id = current_id;
-    //             }            
-    //         }
-    //         IC(current_score);
-    //         IC(returned_matches.size());
-    //         good_matches.clear();
-    //         ransac_matches.clear();
-    //   }
-    // }else{
-    //    loop_detected = false; LoopClosingTool::
-    
-    // if (loop_detected){
-    //     lastLoopClosure_ = currentGlobalKeyframeId;
-    //     point_match = genearteNewGlobalId(keyframes_[Min_Id],returned_matches);
-    // }
-    // //keyframes.push_back(img);
-    // //min-index ?
-    // descriptors.push_back(currentDescriptors);
+    if(loop_detected){
+        point_matches.push_back(point_match);
+    }
     return loop_detected;
 }
 bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match){
@@ -148,6 +65,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         for (int i = 0; i < top && !pq.empty() ; i ++ ){
             int candidate_id = pq.top().first;
             double candidate_score = pq.top().second;
+           // if (candidate_id )
             IC(candidate_score);
             pq.pop();
         //     DBoW3::Result r = rets[i];

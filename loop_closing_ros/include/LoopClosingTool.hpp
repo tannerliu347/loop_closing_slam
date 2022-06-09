@@ -59,7 +59,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     LoopClosingTool(fbow::Vocabulary* pDB);
    // bool detect_loop_test(const cv::Mat& img);
-    bool detect_loop(Matchdata& point_match);
+    bool detect_loop(vector<Matchdata>& point_matches);
     bool find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match);
     // remove wrong pair with ransac
     int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
@@ -121,5 +121,6 @@ private:
     parameters parameter;
     int id = 0;
     int lastLoopClosure_;
+    int max_loopClosureId;
    //std::vector<KeyFrame> histKFs_
 };

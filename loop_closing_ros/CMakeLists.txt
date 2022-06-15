@@ -24,7 +24,6 @@ find_package(catkin REQUIRED COMPONENTS
 # find_package(Boost REQUIRED COMPONENTS system)
 
 find_package(OpenCV REQUIRED)
-find_package(DBoW3 REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Sophus REQUIRED)
@@ -139,7 +138,6 @@ include_directories(
 add_library(${PROJECT_NAME} SHARED ${PROJECT_SOURCE_DIR}/src/LoopClosingTool.cpp)
 target_link_libraries( ${PROJECT_NAME}  PUBLIC
 ${OpenCV_LIBS} 
-${DBoW3_LIBS}
 ${Boost_LIBRARIES}
 boost_system)
 

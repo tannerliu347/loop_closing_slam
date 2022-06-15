@@ -107,7 +107,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     
     if (loop_detected){
         lastLoopClosure_ = currentGlobalKeyframeId;
-        point_match = genearteNewGlobalId(keyframes_[Min_Id],returned_matches);
+       // point_match = genearteNewGlobalId(keyframes_[Min_Id],returned_matches);
     }
     return loop_detected;
 }
@@ -352,21 +352,21 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
     //TODO: add option for debug image
  
     id++;
-    try {
-        cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
-        //cv::imshow("matches_window", imMatches);
-        cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
-        cv::imshow("image", imMatches);
-        if(ransac_matches.size() > 12){
-            cv::imwrite("/root/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
-        }
-        //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
-        //cv::imshow("matches_window", imMatches);
-        //cv::waitKey(1);
-        cv::waitKey(1);
-    } catch (...) {
-        cout << "xxxxxxxxxxxxxxxxxxxxxx" << endl;
-    }
+    // try {
+    //     cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+    //     //cv::imshow("matches_window", imMatches);
+    //     cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
+    //     cv::imshow("image", imMatches);
+    //     if(ransac_matches.size() > 12){
+    //         cv::imwrite("/root/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+    //     }
+    //     //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+    //     //cv::imshow("matches_window", imMatches);
+    //     //cv::waitKey(1);
+    //     cv::waitKey(1);
+    // } catch (...) {
+    //     cout << "xxxxxxxxxxxxxxxxxxxxxx" << endl;
+    // }
     cout << "match size: " << good_matches.size() << "," << ransac_matches.size() << endl;
 }
 Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& candidate,vector<cv::DMatch>& returned_matches){

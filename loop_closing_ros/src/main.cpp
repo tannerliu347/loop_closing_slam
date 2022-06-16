@@ -27,10 +27,10 @@ public:
         match_pub = nh->advertise<frontend::Match>("loop_closing/match", 10);
         frameCount = 0;
     }
-    void run_loopClosure(const frontend::Keyframe::ConstPtr& msg,const inekf_msgs::StateConstPtr &stateMsg,int frameID){
+    void run_loopClosure(const frontend::Keyframe::ConstPtr& msg,const inekf_msgs::StateConstPtr &stateMsg){
         keyframes.push_back(*msg);
         current_state_ = (*stateMsg);
-        states[frameID] = (*stateMsg);
+        states[msg->frameID] = (*stateMsg);
         
         //current pose
         Eigen::Vector3f    positionVector(stateMsg->position.x, stateMsg->position.y, stateMsg->position.z);
@@ -71,7 +71,6 @@ public:
                                             ,msg-> features[i].octave
                                             ,msg-> features[i].class_id));
         }
-        cv::imshow("dispaly",color);
         vector<int> matchingIndex;
         loopDetector_->assignNewFrame(color,depth,msg->frameID,globalId);
         loopDetector_->create_feature(keypoints);
@@ -86,7 +85,8 @@ public:
         if (loopdetected){
             //update globalId
             draw_line(point_matches.back().oldId_);
-            publish_match(point_matches.back());
+            ROS_INFO_STREAM("loop_detected between" << point_matches.back().oldId_ << " and " << point_matches.back().curId_);
+            //publish_match(point_matches.back());
             //publish Matched data
         }
         // }else{
@@ -112,32 +112,32 @@ public:
             measurement.push_back(newPoint);
         }
         match_msg.measurement = measurement;
-        //TODO: publish pose 
-        auto current_state = current_state_;
-        auto old_state = states[match_msg.oldId];
-        Eigen::Vector3f    position_cur(current_state.position.x, current_state.position.y, current_state.position.z);
-        Eigen::Quaternionf poseOrientation_cur(current_state.orientation.w, current_state.orientation.x, current_state.orientation.y, current_state.orientation.z);
-        Sophus::SE3f currentInekfPose(poseOrientation_cur,position_cur);
+        //TODO: redo this part  
+        // auto current_state = current_state_;
+        // auto old_state = states[match_msg.oldId];
+        // Eigen::Vector3f    position_cur(current_state.position.x, current_state.position.y, current_state.position.z);
+        // Eigen::Quaternionf poseOrientation_cur(current_state.orientation.w, current_state.orientation.x, current_state.orientation.y, current_state.orientation.z);
+        // Sophus::SE3f currentInekfPose(poseOrientation_cur,position_cur);
 
-        Eigen::Vector3f    position_old(old_state.position.x, old_state.position.y, old_state.position.z);
-        Eigen::Quaternionf poseOrientation_old(old_state.orientation.w, old_state.orientation.x, old_state.orientation.y, old_state.orientation.z);
-        Sophus::SE3f oldInekfPose(poseOrientation_old,position_old);
+        // Eigen::Vector3f    position_old(old_state.position.x, old_state.position.y, old_state.position.z);
+        // Eigen::Quaternionf poseOrientation_old(old_state.orientation.w, old_state.orientation.x, old_state.orientation.y, old_state.orientation.z);
+        // Sophus::SE3f oldInekfPose(poseOrientation_old,position_old);
 
-        Sophus::SE3f relativePose = oldInekfPose.inverse() * currentInekfPose;
-        auto t = relativePose.translation();
-        auto q = relativePose.unit_quaternion().coeffs();
+        // Sophus::SE3f relativePose = oldInekfPose.inverse() * currentInekfPose;
+        // auto t = relativePose.translation();
+        // auto q = relativePose.unit_quaternion().coeffs();
 
-        geometry_msgs::Pose betweenPose;
-        betweenPose.orientation.w = q.w();
-        betweenPose.orientation.x = q.x();
-        betweenPose.orientation.y = q.y();
-        betweenPose.orientation.z = q.z();
+        // geometry_msgs::Pose betweenPose;
+        // betweenPose.orientation.w = q.w();
+        // betweenPose.orientation.x = q.x();
+        // betweenPose.orientation.y = q.y();
+        // betweenPose.orientation.z = q.z();
 
-        betweenPose.position.x = t.x();
-        betweenPose.position.y = t.y();
-        betweenPose.position.z = t.z();
+        // betweenPose.position.x = t.x();
+        // betweenPose.position.y = t.y();
+        // betweenPose.position.z = t.z();
 
-        match_msg.betweenPose = betweenPose;
+        // match_msg.betweenPose = betweenPose;
         match_pub.publish(match_msg);
     }
     void draw_line(int i){
@@ -221,10 +221,9 @@ private:
 //loop closing entry
 loop_closing_ros loopclosing;
 void filterCallback(const inekf_msgs::StateConstPtr &stateMsg,const frontend::Keyframe::ConstPtr& Framemsg) {
-
     ROS_INFO("I heard: [%d],  [%d]", loopclosing.frameCount,Framemsg->frameID);
-    loopclosing.run_loopClosure(Framemsg,stateMsg,loopclosing.frameCount);
     loopclosing.frameCount++;
+    loopclosing.run_loopClosure(Framemsg,stateMsg);
 };
 
 
@@ -245,7 +244,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "loop_closing");
   ros::NodeHandle nh;
   fbow::Vocabulary voc;
-  voc.readFromFile("/root/ws/curly_slam/catkin_ws/obrbb.fbow");
+  voc.readFromFile("/root/ws/curly_slam/catkin_ws/sift.fbow");
   LoopClosingTool lct(&voc);
   //set up loop closing
   loopclosing.set_core(&nh,&lct);
@@ -255,7 +254,7 @@ int main(int argc, char **argv)
   nh.param<string>("depth_topic",  keyframe_topic, "/frontend/keyframe");
   nh.param<string>("state_topic", state_topic,  "/cheetah/inekf_estimation/inekf_state");
   //message filters
-  message_filters::Subscriber<frontend::Keyframe> keyframe_sub_(nh, keyframe_topic, 1);
+  message_filters::Subscriber<frontend::Keyframe> keyframe_sub_(nh, keyframe_topic, 5000);
   message_filters::Subscriber<inekf_msgs::State> state_sub_(nh, state_topic, 5000);
   typedef message_filters::sync_policies::ApproximateTime<inekf_msgs::State, frontend::Keyframe> SyncPolicy;
   message_filters::Synchronizer<SyncPolicy> sync(SyncPolicy(5000), state_sub_,  keyframe_sub_);

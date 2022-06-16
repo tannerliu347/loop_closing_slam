@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include "Matchdata.hpp"
 #include <queue>
+#include "ros/ros.h"
 // class keyframe{
 
 // };
@@ -46,8 +47,8 @@ struct parameters{
         RansacThresh2d = 50;
         top_match = 10;
         PIXEL_TO_METER_SCALEFACTOR = 0.001;
-        ransacReprojectionError = 8;
-        ransacIterations = 100;
+        ransacReprojectionError = 30;
+        ransacIterations = 1000;
         framegap = 5;
         create_databasefile = false;
     };

@@ -3,8 +3,8 @@
 #include <opencv2/xfeatures2d.hpp>
 LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB),
                                                     frameGap_(10), 
-                                                    minScoreAccept_(0.09),
-                                                    featureType_(0),
+                                                    minScoreAccept_(0.15),
+                                                    featureType_(2),
                                                     featureCount_(1000){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
@@ -47,6 +47,11 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     bool loop_detected = false;
     for (int i = 0; i < (int(frame.globalKeyframeID) - int(frameGap_)); i ++ ){
         fbow::fBow bowvector_cur;
+        if(keyframes_[i].descriptors.empty()){
+            //ROS_ERROR_STREAM("size" << keyframes_.size());
+            ROS_ERROR_STREAM(keyframes_[i].globalKeyframeID << " " << i  << "empty old descriptor");
+            //continue;
+        }
         bowvector_cur = pDB_->transform(cur_desc);
         fbow::fBow bowvector_old;
         bowvector_old = pDB_->transform(keyframes_[i].descriptors);
@@ -80,12 +85,8 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             continue;
             } 
             //modifeies below
-            IC("here1");
-            //TODO: Fix ransac_featureMatching 
             int inlier = ransac_featureMatching(frame,keyframes_[candidate_id]);
-            IC("here2");
             eliminateOutliersPnP(frame,keyframes_[candidate_id]);
-            IC("here3");
             inlier = ransac_matches.size();
             //int inlier = 100;
             int inlierThresh = 12;
@@ -105,10 +106,10 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     }
     //pDB_->add(cur_desc);
     
-    if (loop_detected){
-        lastLoopClosure_ = currentGlobalKeyframeId;
-       // point_match = genearteNewGlobalId(keyframes_[Min_Id],returned_matches);
-    }
+    // if (loop_detected){
+    //     lastLoopClosure_ = currentGlobalKeyframeId;
+    //    // point_match = genearteNewGlobalId(keyframes_[Min_Id],returned_matches);
+    // }
     return loop_detected;
 }
 
@@ -214,53 +215,60 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
     currentKeypoints = Keypoints;
     cv::Ptr<cv::FeatureDetector> detector;
    
-    // switch (featureType_) {
-    // case 0:
-    //        detector = cv::ORB::create();
-    //        break;
-    // case 1:
-    // #ifdef COMPILE_WITH_SURF
-    //         detector = cv::xfeatures2d::SURF::create(featureCount_);
-    // #else
-    //        throw std::runtime_error("Surf not compiled");
-    // #endif
-    //         break;
-    //     case 2:
-    //         detector = cv::SIFT::create();
-    //         break;
-    //     case 3:
-    //         detector = cv::KAZE::create();
-    //         break;
-    //     case 4:
-    //         detector = cv::AKAZE::create();
-    //         break;
-    //     }
-    // detector->detect(currentImage, currentKeypoints);
-    auto descriptor = cv::xfeatures2d::BEBLID::create(1.0);
-    descriptor->compute(currentImage,Keypoints, currentDescriptors);
+    switch (featureType_) {
+    case 0:
+           detector = cv::ORB::create();
+           break;
+    case 1:
+    #ifdef COMPILE_WITH_SURF
+            detector = cv::xfeatures2d::SURF::create(featureCount_);
+    #else
+           throw std::runtime_error("Surf not compiled");
+    #endif
+            break;
+        case 2:
+            detector = cv::SIFT::create();
+            break;
+        case 3:
+            detector = cv::KAZE::create();
+            break;
+        case 4:
+            detector = cv::AKAZE::create();
+            break;
+        }
+    if (featureType_ == 0){
+        auto descriptor = cv::xfeatures2d::BEBLID::create(1.0);
+        descriptor->compute(currentImage,Keypoints, currentDescriptors);
+    }else{
+        detector->compute(currentImage, Keypoints,currentDescriptors);
+    }
+    
 }
 void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
     currentImage = img;
     currentDepth = depth;
-    //currentGlobalKeyframeId =  gloablKeyframeId;
-    currentGlobalKeyframeId++;
+    currentGlobalKeyframeId =  gloablKeyframeId;
+    //currentGlobalKeyframeId++;
     current_globalIDs = globalID;
 
 }
 void LoopClosingTool::generateKeyframe(){
     //calculate point 3d ]
     get3DfeaturePosition(point_3d, currentDepth, goodKeypoints);
-    if (keyframes_.empty()){
-        Keyframe kf = Keyframe(0,currentImage,currentDepth,currentKeypoints,goodKeypoints,currentDescriptors,currentGlobalKeyframeId);
-        kf.insertGlobalID(current_globalIDs);
-        kf.insertPoint3D(point_3d);
-        keyframes_.push_back(kf);
-    }else{
-        Keyframe kf = Keyframe(keyframes_.back().frameID+1,currentImage,currentDepth,currentKeypoints,goodKeypoints,currentDescriptors,currentGlobalKeyframeId);
-        kf.insertGlobalID(current_globalIDs);
-        keyframes_.push_back(kf);
-        kf.insertPoint3D(point_3d);
+    if (currentDescriptors.empty()){
+        ROS_ERROR_STREAM("empty descriptor");
+        exit(1);
     }
+    if (currentDescriptors.empty()){
+            ROS_ERROR_STREAM("empty current descriptor");
+            exit(1);
+    }   
+   
+    Keyframe kf(currentGlobalKeyframeId,currentImage,currentDepth,currentKeypoints,currentDescriptors);
+    kf.insertPoint3D(point_3d);
+    kf.insertGlobalID(current_globalIDs);
+    keyframes_.push_back(kf);
+    
     goodKeypoints.clear();
     currentKeypoints.clear();
    
@@ -352,21 +360,21 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
     //TODO: add option for debug image
  
     id++;
-    // try {
-    //     cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
-    //     //cv::imshow("matches_window", imMatches);
-    //     cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
-    //     cv::imshow("image", imMatches);
-    //     if(ransac_matches.size() > 12){
-    //         cv::imwrite("/root/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
-    //     }
-    //     //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
-    //     //cv::imshow("matches_window", imMatches);
-    //     //cv::waitKey(1);
-    //     cv::waitKey(1);
-    // } catch (...) {
-    //     cout << "xxxxxxxxxxxxxxxxxxxxxx" << endl;
-    // }
+     try {
+        cv::drawMatches(lastImage, lastKeypoints, current.img, current.keypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+        //cv::imshow("matches_window", imMatches);
+        cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
+        cv::imshow("image", imMatches);
+        if(ransac_matches.size() > 2){
+            cv::imwrite("/root/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+        }
+        //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+        //cv::imshow("matches_window", imMatches);
+        //cv::waitKey(1);
+        cv::waitKey(1);
+    } catch (...) {
+       ROS_ERROR_STREAM("failed to plot");
+    }
     cout << "match size: " << good_matches.size() << "," << ransac_matches.size() << endl;
 }
 Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& candidate,vector<cv::DMatch>& returned_matches){

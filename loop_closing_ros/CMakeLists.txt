@@ -29,8 +29,6 @@ find_package(Boost REQUIRED)
 find_package(Sophus REQUIRED)
 find_package(fbow REQUIRED)
 #remove later debug purpose
-find_package(IcecreamCpp)
-include_directories(${IcecreamCpp_INCLUDE_DIRS})
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 ## Uncomment this if the package has a setup.py. This macro ensures

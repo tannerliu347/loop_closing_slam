@@ -12,7 +12,6 @@ LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB),
     }
 
 bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches){
-    IC(currentGlobalKeyframeId);
     
     if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < frameGap_){
         return false;
@@ -71,7 +70,6 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             int candidate_id = pq.top().first;
             double candidate_score = pq.top().second;
            // if (candidate_id )
-            IC(candidate_score);
             pq.pop();
         //     DBoW3::Result r = rets[i];
         //     // if (abs(int(r.Id) - int(rets[i-1].Id)) < 3 ){
@@ -97,7 +95,6 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
                     Min_Id = candidate_id;
                 }            
             }
-            IC(returned_matches.size());
             good_matches.clear();
             ransac_matches.clear();
       }
@@ -129,14 +126,6 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidat
     cv::Mat curImg = current.img;
     cv::Mat candidateImg = candidate.img;
     //create a matcher (Flann ) 
-    
-    if ( cur_descr.empty() ){
-        IC("failure cur");
-    }
-          
-    if ( candidate_descr.empty() ){
-        IC("failure other");
-    }
     // matcher.match( cur_descr, candidate_descr, matches );
     //mathcer brute force
     cv::BFMatcher matcher( cv::NORM_L2,true);
@@ -386,11 +375,8 @@ Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& candidate,vector<cv::DM
     std::vector<int> old_pointId;
     std::vector<cv::KeyPoint> newmeasurement;
     for (int i = 0; i < returned_matches.size(); i ++){
-        //ic(returned_matches[i].queryIdx.)
         cur_pointId.push_back( current_globalIDs[returned_matches[i].trainIdx]);
         old_pointId.push_back( candidate_globalId[returned_matches[i].queryIdx]);
-        IC(returned_matches[i].trainIdx);
-        IC(returned_matches[i].queryIdx);
         newmeasurement.emplace_back(currentKeypoints[returned_matches[i].trainIdx]);
     }
     Matchdata point_match(currentGlobalKeyframeId,candidate.globalKeyframeID,cur_pointId,old_pointId,newmeasurement);

@@ -9,7 +9,6 @@
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <eigen3/Eigen/Core>
-#include <icecream.hpp>
 #include <string>
 #include <fbow/fbow.h>
 #include <fbow/vocabulary_creator.h>

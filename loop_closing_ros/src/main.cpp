@@ -14,9 +14,11 @@
 #include <geometry_msgs/Point.h>
 #include <unordered_map>
 #include <sophus/se3.hpp>
-class loop_closing_ros{
+#include <dynamic_reconfigure/server.h>
+#include <loop_closing_ros/LoopclosingConfig.h>
+class loop_closing_manager{
 public:
-    loop_closing_ros(){markerId = 0;}
+    loop_closing_manager(){markerId = 0;}
     
     //set up loop closure tool
     void set_core(ros::NodeHandle* nh, LoopClosingTool* ltr){
@@ -219,11 +221,11 @@ private:
 
 };
 //loop closing entry
-loop_closing_ros loopclosing;
+loop_closing_manager loop_manager;
 void filterCallback(const inekf_msgs::StateConstPtr &stateMsg,const frontend::Keyframe::ConstPtr& Framemsg) {
-    ROS_INFO("I heard: [%d],  [%d]", loopclosing.frameCount,Framemsg->frameID);
-    loopclosing.frameCount++;
-    loopclosing.run_loopClosure(Framemsg,stateMsg);
+    ROS_INFO("I heard: [%d],  [%d]", loop_manager.frameCount,Framemsg->frameID);
+    loop_manager.frameCount++;
+    loop_manager.run_loopClosure(Framemsg,stateMsg);
 };
 
 
@@ -247,7 +249,7 @@ int main(int argc, char **argv)
   voc.readFromFile("/root/ws/curly_slam/catkin_ws/sift.fbow");
   LoopClosingTool lct(&voc);
   //set up loop closing
-  loopclosing.set_core(&nh,&lct);
+  loop_manager.set_core(&nh,&lct);
   //get parameters
   string keyframe_topic;
   string state_topic;

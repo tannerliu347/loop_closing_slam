@@ -18,8 +18,11 @@ find_package(catkin REQUIRED COMPONENTS
   inekf_msgs
   geometry_msgs
   message_filters
+  dynamic_reconfigure
 )
-
+generate_dynamic_reconfigure_options(
+  cfg/Loopclosing.cfg
+)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 

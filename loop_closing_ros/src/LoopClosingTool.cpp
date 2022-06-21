@@ -1,11 +1,7 @@
 #include "LoopClosingTool.hpp"
 #include <algorithm>
 #include <opencv2/xfeatures2d.hpp>
-LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB),
-                                                    frameGap_(10), 
-                                                    minScoreAccept_(0.15),
-                                                    featureType_(2),
-                                                    featureCount_(1000){   
+LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
         currentGlobalKeyframeId = 0;
@@ -13,7 +9,7 @@ LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB),
 
 bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches){
     
-    if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < frameGap_){
+    if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < skip_frame_ ){
         return false;
     }
     //first add new key frame in 
@@ -40,11 +36,11 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     //create a temporal current keyframe
     cv::Mat cur_desc = frame.descriptors;
     cv::Mat img = frame.img;;
-    int maxId = std::max(int(pDB_->size() - frameGap_),0);
-    int top = parameter.top_match;
+    int maxId = std::max(int(pDB_->size() - first_candidate_),0);
+    int top = top_match_;
     std::priority_queue<pair<int,double>, std::vector<pair<int,double>>,Compare_score> pq;
     bool loop_detected = false;
-    for (int i = 0; i < (int(frame.globalKeyframeID) - int(frameGap_)); i ++ ){
+    for (int i = 0; i < (int(frame.globalKeyframeID) - int(near_frame_)); i ++ ){
         fbow::fBow bowvector_cur;
         if(keyframes_[i].descriptors.empty()){
             //ROS_ERROR_STREAM("size" << keyframes_.size());
@@ -87,8 +83,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             eliminateOutliersPnP(frame,keyframes_[candidate_id]);
             inlier = ransac_matches.size();
             //int inlier = 100;
-            int inlierThresh = 12;
-            if (inlier > inlierThresh){
+            if (inlier > inlier_){
                 loop_detected = true;
                 if (candidate_id < Min_Id){
                     returned_matches.assign(ransac_matches.begin(), ransac_matches.end());
@@ -325,8 +320,8 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
                            ransacRVectorGuess,
                            ransacTGuess,
                            true,
-                           parameter.ransacIterations,
-                           parameter.ransacReprojectionError,
+                           ransacIterations_,
+                           ransacReprojectionError_,
                            0.99,
                            inliers,
                            cv::SOLVEPNP_ITERATIVE);

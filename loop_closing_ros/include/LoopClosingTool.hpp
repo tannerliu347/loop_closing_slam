@@ -44,11 +44,7 @@ struct parameters{
         CX = 318.244;
         CY = 246.718;
         RansacThresh2d = 50;
-        top_match = 10;
         PIXEL_TO_METER_SCALEFACTOR = 0.001;
-        ransacReprojectionError = 30;
-        ransacIterations = 1000;
-        framegap = 5;
         create_databasefile = false;
     };
 
@@ -85,9 +81,33 @@ public:
 
     void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
     Matchdata genearteNewGlobalId(Keyframe& candidate,vector<cv::DMatch>& returned_matches);
+
+    //set config
+    void setFeatureType(int featureType){
+        featureType_ = featureType;
+    }
+
+    void setRansacP(double ransacReprojectionError, int ransacIterations){
+        ransacReprojectionError_ = ransacReprojectionError;
+        ransacIterations_ = ransacReprojectionError;
+    }
+    void setInlier_(int inlier){
+        inlier_ = inlier;
+    }
+    void setTop_match(int top_match){
+        top_match_ = top_match;
+    }
+    void setFrameskip(int skip_frame,int first_candidate,int near_frame){
+        skip_frame_ = skip_frame;
+        first_candidate_ = first_candidate;
+        near_frame_ = near_frame;
+    }
+    void setMinScoreAccept(double minScoreAccept){
+        minScoreAccept_ = minScoreAccept;
+    }
+   
 private:
     fbow::Vocabulary* pDB_;
-    unsigned int frameGap_; // We consider frames within this range as too close
     float minScoreAccept_; // Disregard ones lower than this
     Eigen::MatrixXd* loopClosureMatch_;
     std::vector<Keyframe> keyframes_; //store keyframe class
@@ -105,9 +125,18 @@ private:
 
     // ransac
     cv::Mat ransacRGuess, ransacTGuess;
-
+    //config
     int featureType_;
     int featureCount_;
+    double ransacReprojectionError_;
+    int ransacIterations_;
+    double minimum_score;
+    int inlier_; // Minimum number of inlier
+    int top_match_; // Top N frame from fbow database to check for potential loop closure candidate
+    int first_candidate_; // first frame to start check for loop closure candidate
+    int skip_frame_; //number of frame to skip after find a loop closure candidate
+    int near_frame_; // number of frame to ignore when featching loop closure matching result
+    //data
     int currentGlobalKeyframeId;
     cv::Mat currentImage;
     cv::Mat currentDepth;

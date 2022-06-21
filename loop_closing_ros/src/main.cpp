@@ -204,9 +204,8 @@ public:
         }
     }
     int frameCount;
-
-private: 
     LoopClosingTool* loopDetector_;
+private: 
     ros::NodeHandle* nh_;
     ros::Subscriber keyframeSub_;
     ros::Publisher closingLine_pub;
@@ -230,16 +229,14 @@ void filterCallback(const inekf_msgs::StateConstPtr &stateMsg,const frontend::Ke
 
 
 
-
-
-
-
-
-
-
-
-
-
+void dynamic_reconfig_callback(loop_closing_ros::LoopclosingConfig &config, uint32_t level) {
+    loop_manager.loopDetector_->setFeatureType(config.feature_type);
+    loop_manager.loopDetector_->setRansacP(config.ransac_reprojection_error,config.ransac_iterations);
+    loop_manager.loopDetector_->setInlier_(config.inlier);
+    loop_manager.loopDetector_->setTop_match(config.top_match);
+    loop_manager.loopDetector_->setMinScoreAccept(config.min_score);
+    loop_manager.loopDetector_->setFrameskip(config.skip_frame,config.first_candidate,config.near_frame);
+}
 
 int main(int argc, char **argv)
 {
@@ -250,6 +247,11 @@ int main(int argc, char **argv)
   LoopClosingTool lct(&voc);
   //set up loop closing
   loop_manager.set_core(&nh,&lct);
+
+
+  dynamic_reconfigure::Server<loop_closing_ros::LoopclosingConfig> server;
+  server.setCallback(boost::bind(&dynamic_reconfig_callback, _1, _2));
+
   //get parameters
   string keyframe_topic;
   string state_topic;

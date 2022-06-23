@@ -58,7 +58,8 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         return false;
     }
     //make sure closet frame have a good score
-    int Min_Id = INT_MAX;
+    int Maxinlier_Id = INT_MIN;
+    int Maxinlier = INT_MIN;
     // Store retured match
     vector<cv::DMatch> returned_matches;
     if (pq.size() > 0){
@@ -85,9 +86,10 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             //int inlier = 100;
             if (inlier > inlier_){
                 loop_detected = true;
-                if (candidate_id < Min_Id){
+                if (inlier >  Maxinlier){
                     returned_matches.assign(ransac_matches.begin(), ransac_matches.end());
-                    Min_Id = candidate_id;
+                    Maxinlier_Id = candidate_id;
+                    Maxinlier = inlier;
                 }            
             }
             good_matches.clear();
@@ -100,7 +102,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     
     if (loop_detected){
         lastLoopClosure_ = currentGlobalKeyframeId;
-       point_match = genearteNewGlobalId(frame,keyframes_[Min_Id],returned_matches);
+       point_match = genearteNewGlobalId(frame,keyframes_[Maxinlier_Id],returned_matches);
     }
     return loop_detected;
 }

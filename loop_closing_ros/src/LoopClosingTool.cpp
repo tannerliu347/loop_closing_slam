@@ -98,10 +98,10 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     }
     //pDB_->add(cur_desc);
     
-    // if (loop_detected){
-    //     lastLoopClosure_ = currentGlobalKeyframeId;
-    //    // point_match = genearteNewGlobalId(keyframes_[Min_Id],returned_matches);
-    // }
+    if (loop_detected){
+        lastLoopClosure_ = currentGlobalKeyframeId;
+       point_match = genearteNewGlobalId(frame,keyframes_[Min_Id],returned_matches);
+    }
     return loop_detected;
 }
 
@@ -361,20 +361,20 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
     }
     cout << "match size: " << good_matches.size() << "," << ransac_matches.size() << endl;
 }
-Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& candidate,vector<cv::DMatch>& returned_matches){
+Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& current, Keyframe& candidate,vector<cv::DMatch>& returned_matches){
     std::vector<int> candidate_globalId = candidate.globalIDs;
     //check ransac matches, find matched global id, created map
     std::unordered_map<int,int> matched_globalId; 
-    std::vector<int> result_globalId = current_globalIDs;
+    std::vector<int> current_globalIDs_ = current.globalIDs;
     std::vector<int> cur_pointId;
     std::vector<int> old_pointId;
     std::vector<cv::KeyPoint> newmeasurement;
     for (int i = 0; i < returned_matches.size(); i ++){
-        cur_pointId.push_back( current_globalIDs[returned_matches[i].trainIdx]);
+        cur_pointId.push_back( current_globalIDs_[returned_matches[i].trainIdx]);
         old_pointId.push_back( candidate_globalId[returned_matches[i].queryIdx]);
-        newmeasurement.emplace_back(currentKeypoints[returned_matches[i].trainIdx]);
+        newmeasurement.emplace_back(current.keypoints[returned_matches[i].trainIdx]);
     }
-    Matchdata point_match(currentGlobalKeyframeId,candidate.globalKeyframeID,cur_pointId,old_pointId,newmeasurement);
+    Matchdata point_match(current.globalKeyframeID,candidate.globalKeyframeID,cur_pointId,old_pointId,newmeasurement);
     //current_globalIDs = result_globalId;
     // return result_globalId;
     return point_match;

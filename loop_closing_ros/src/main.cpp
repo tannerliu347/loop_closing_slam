@@ -88,7 +88,7 @@ public:
             //update globalId
             draw_line(point_matches.back().oldId_);
             ROS_INFO_STREAM("loop_detected between" << point_matches.back().oldId_ << " and " << point_matches.back().curId_);
-            //publish_match(point_matches.back());
+            publish_match(point_matches.back());
             //publish Matched data
         }
         // }else{
@@ -115,29 +115,29 @@ public:
         }
         match_msg.measurement = measurement;
         //TODO: redo this part  
-        // auto current_state = current_state_;
-        // auto old_state = states[match_msg.oldId];
-        // Eigen::Vector3f    position_cur(current_state.position.x, current_state.position.y, current_state.position.z);
-        // Eigen::Quaternionf poseOrientation_cur(current_state.orientation.w, current_state.orientation.x, current_state.orientation.y, current_state.orientation.z);
-        // Sophus::SE3f currentInekfPose(poseOrientation_cur,position_cur);
+        auto current_state = current_state_;
+        auto old_state = states[match_msg.oldId];
+        Eigen::Vector3f    position_cur(current_state.position.x, current_state.position.y, current_state.position.z);
+        Eigen::Quaternionf poseOrientation_cur(current_state.orientation.w, current_state.orientation.x, current_state.orientation.y, current_state.orientation.z);
+        Sophus::SE3f currentInekfPose(poseOrientation_cur,position_cur);
 
-        // Eigen::Vector3f    position_old(old_state.position.x, old_state.position.y, old_state.position.z);
-        // Eigen::Quaternionf poseOrientation_old(old_state.orientation.w, old_state.orientation.x, old_state.orientation.y, old_state.orientation.z);
-        // Sophus::SE3f oldInekfPose(poseOrientation_old,position_old);
+        Eigen::Vector3f    position_old(old_state.position.x, old_state.position.y, old_state.position.z);
+        Eigen::Quaternionf poseOrientation_old(old_state.orientation.w, old_state.orientation.x, old_state.orientation.y, old_state.orientation.z);
+        Sophus::SE3f oldInekfPose(poseOrientation_old,position_old);
 
-        // Sophus::SE3f relativePose = oldInekfPose.inverse() * currentInekfPose;
-        // auto t = relativePose.translation();
-        // auto q = relativePose.unit_quaternion().coeffs();
+        Sophus::SE3f relativePose = oldInekfPose.inverse() * currentInekfPose;
+        auto t = relativePose.translation();
+        auto q = relativePose.unit_quaternion().coeffs();
 
-        // geometry_msgs::Pose betweenPose;
-        // betweenPose.orientation.w = q.w();
-        // betweenPose.orientation.x = q.x();
-        // betweenPose.orientation.y = q.y();
-        // betweenPose.orientation.z = q.z();
+        geometry_msgs::Pose betweenPose;
+        betweenPose.orientation.w = q.w();
+        betweenPose.orientation.x = q.x();
+        betweenPose.orientation.y = q.y();
+        betweenPose.orientation.z = q.z();
 
-        // betweenPose.position.x = t.x();
-        // betweenPose.position.y = t.y();
-        // betweenPose.position.z = t.z();
+        betweenPose.position.x = t.x();
+        betweenPose.position.y = t.y();
+        betweenPose.position.z = t.z();
 
         // match_msg.betweenPose = betweenPose;
         match_pub.publish(match_msg);

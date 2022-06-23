@@ -80,7 +80,7 @@ public:
     }
 
     void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
-    Matchdata genearteNewGlobalId(Keyframe& candidate,vector<cv::DMatch>& returned_matches);
+    Matchdata genearteNewGlobalId(Keyframe& current, Keyframe& candidate,vector<cv::DMatch>& returned_matches);
 
     //set config
     void setFeatureType(int featureType){

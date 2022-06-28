@@ -105,6 +105,9 @@ public:
     void setMinScoreAccept(double minScoreAccept){
         minScoreAccept_ = minScoreAccept;
     }
+    void setVocabularyfile(string path){
+        pDB_->readFromFile(path);
+    }
    
 private:
     fbow::Vocabulary* pDB_;

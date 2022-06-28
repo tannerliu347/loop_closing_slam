@@ -231,6 +231,7 @@ void filterCallback(const inekf_msgs::StateConstPtr &stateMsg,const frontend::Ke
 
 
 void dynamic_reconfig_callback(loop_closing_ros::LoopclosingConfig &config, uint32_t level) {
+    loop_manager.loopDetector_->setVocabularyfile(config.vocab_path);
     loop_manager.loopDetector_->setFeatureType(config.feature_type);
     loop_manager.loopDetector_->setRansacP(config.ransac_reprojection_error,config.ransac_iterations);
     loop_manager.loopDetector_->setInlier_(config.inlier);
@@ -243,15 +244,17 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "loop_closing");
   ros::NodeHandle nh;
+  string vocab_path;
   fbow::Vocabulary voc;
-  voc.readFromFile("/root/ws/curly_slam/catkin_ws/sift.fbow");
+  //voc.readFromFile("/root/ws/curly_slam/catkin_ws/sift.fbow");
+  //voc.readFromFile(vocab_path);
   LoopClosingTool lct(&voc);
   //set up loop closing
   loop_manager.set_core(&nh,&lct);
 
-
   dynamic_reconfigure::Server<loop_closing_ros::LoopclosingConfig> server;
   server.setCallback(boost::bind(&dynamic_reconfig_callback, _1, _2));
+
 
   //get parameters
   string keyframe_topic;

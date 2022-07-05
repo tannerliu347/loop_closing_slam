@@ -3,6 +3,7 @@ void LoopClosingManager::setCore(ros::NodeHandle* nh, LoopClosingTool* ltr){
     nh = nh;
     loopDetector = ltr;
     closingLine_pub = nh->advertise<visualization_msgs::Marker>("loop_closing_line", 10);
+    test_point_pub = nh->advertise<visualization_msgs::Marker>("loop_closing_point", 10);
     //keyframe_pub = nh->advertise<frontend::Keyframe>("loop_closing/keyframe", 10);
     match_pub = nh->advertise<frontend::Match>("loop_closing/match", 10);
     frameCount = 0;
@@ -93,6 +94,28 @@ void LoopClosingManager::publishMatch(Matchdata& point_match){
         measurement.push_back(newPoint);
     }
     match_msg.measurement = measurement;
+
+    //test relative pose calculate from pnp, by add this relative pose to old pose
+    auto old_state = states[match_msg.oldId];
+    Eigen::Vector3f    position_old(old_state.position.x, old_state.position.y, old_state.position.z);
+    Eigen::Quaternionf poseOrientation_old(old_state.orientation.w, old_state.orientation.x, old_state.orientation.y, old_state.orientation.z);
+    Sophus::SE3f oldInekfPose(poseOrientation_old,position_old);
+    Eigen::Quaternionf poseOrientation_relative(point_match.rp_.rot);
+    Sophus::SE3f relativePose(poseOrientation_relative,point_match.rp_.pos);
+     
+    Sophus::SE3f currentPose_estimate = relativePose * oldInekfPose;
+    auto t = currentPose_estimate.translation();
+    auto q = currentPose_estimate.unit_quaternion().coeffs();
+    geometry_msgs::Pose estimate_pose;
+    estimate_pose.orientation.w = q.w();
+    estimate_pose.orientation.x = q.x();
+    estimate_pose.orientation.y = q.y();
+    estimate_pose.orientation.z = q.z();
+
+    estimate_pose.position.x = t.x();
+    estimate_pose.position.y = t.y();
+    estimate_pose.position.z = t.z();
+    drawPoint(estimate_pose);
     //TODO: redo this part  
     // auto current_state = current_state;
     // auto old_state = states[match_msg.oldId];
@@ -176,4 +199,22 @@ void LoopClosingManager::drawLine(const vector<int>& matchingIndex){
         line_strip.points.push_back(matching_point);
         closingLine_pub.publish(line_strip);
     }
+}
+void LoopClosingManager::drawPoint(const geometry_msgs::Pose pose){
+    visualization_msgs::Marker test_point;
+    test_point.header.frame_id = "odom";
+    test_point.header.stamp = ros::Time::now();
+    test_point.ns =  "points";
+    test_point.action = visualization_msgs::Marker::ADD;
+    test_point.pose.orientation.w = 1.0;
+    test_point.id = markerId++;
+    test_point.color.b = 1.0;
+    test_point.color.r = 0.0;
+    test_point.color.a = 1.0;
+    test_point.scale.x = 0.1;
+    test_point.scale.y = 0.1;
+    test_point.scale.z = 0.1;
+    test_point.type = visualization_msgs::Marker::ARROW;
+    test_point_pub.publish(test_point);
+
 }

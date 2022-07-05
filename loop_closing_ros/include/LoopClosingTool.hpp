@@ -73,14 +73,14 @@ public:
         this->point_3d.clear();
         this->point_3d = point_3d;
     }
-    void eliminateOutliersPnP(Keyframe& current,Keyframe& candidate);
+    RelativePose eliminateOutliersPnP(Keyframe& current,Keyframe& candidate);
     //update this
     void create_camera_p(){
         parameter = parameters();
     }
 
     void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
-    Matchdata genearteNewGlobalId(Keyframe& current, Keyframe& candidate,vector<cv::DMatch>& returned_matches);
+    Matchdata genearteNewGlobalId(Keyframe& current, Keyframe& candidate,vector<cv::DMatch>& returned_matches,RelativePose& pose);
 
     //set config
     void setFeatureType(int featureType){

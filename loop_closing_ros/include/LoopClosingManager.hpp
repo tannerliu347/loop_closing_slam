@@ -27,6 +27,7 @@ public:
     void publishMatch(Matchdata& point_match);
     void drawLine(int i);
     void drawLine(const vector<int>& matchingIndex);
+    void drawPoint(const geometry_msgs::Pose pose);
     int frameCount;
     LoopClosingTool* loopDetector;
 private: 
@@ -35,6 +36,7 @@ private:
     ros::Publisher closingLine_pub;
     ros::Publisher keyframe_pub;
     ros::Publisher match_pub;
+    ros::Publisher test_point_pub;
     std::vector<frontend::Keyframe> keyframes;
     std::unordered_map<int, inekf_msgs::State> states;
     inekf_msgs::State current_state;

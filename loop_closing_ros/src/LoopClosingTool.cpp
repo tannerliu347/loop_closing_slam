@@ -200,7 +200,9 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
     currentDescriptors.release();
     currentKeypoints = Keypoints;
     cv::Ptr<cv::FeatureDetector> detector;
-   
+    if(Keypoints.empty()){
+        cout <<"keypoint is empty" << endl;
+    }
     switch (featureType_) {
     case 0:
            detector = cv::ORB::create();

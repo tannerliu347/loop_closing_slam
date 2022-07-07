@@ -58,11 +58,10 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     //loopDetector->create_feature();
     // loopDetector->set2DfeaturePosition(feature_2d);  
     // loopDetector->set3DfeaturePosition(feature_3d);
-    loopDetector->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
+    //loopDetector->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
     vector<Matchdata> point_matches;
-    bool loopdetected = loopDetector->detect_loop(point_matches);
+    bool loopdetected = loopDetector->detect_loop(point_matches,states);
     //cv::imwrite("image"+std::to_string(keyframes.size())+".jpg",color );
-    ROS_DEBUG_STREAM("here");
     if (loopdetected){
         //update globalId
         drawLine(point_matches[point_matches.size() -1].oldId_);
@@ -118,7 +117,7 @@ void LoopClosingManager::publishMatch(Matchdata& point_match){
     estimate_pose.position.y = t.y();
     estimate_pose.position.z = t.z();
     drawPoint(estimate_pose);
-    //TODO: redo this part  
+     
     // auto current_state = current_state;
     // auto old_state = states[match_msg.oldId];
     // Eigen::Vector3f    position_cur(current_state.position.x, current_state.position.y, current_state.position.z);
@@ -219,9 +218,9 @@ void LoopClosingManager::drawPoint(const geometry_msgs::Pose pose){
     test_point.color.b = 1.0;
     test_point.color.r = 0.0;
     test_point.color.a = 1.0;
-    test_point.scale.x = 1.0;
-    test_point.scale.y = 0.5;
-    test_point.scale.z = 0.5;
+    test_point.scale.x = 0.5;
+    test_point.scale.y = 0.1;
+    test_point.scale.z = 0.1;
     test_point.type = visualization_msgs::Marker::ARROW;
   
     test_point_pub.publish(test_point);

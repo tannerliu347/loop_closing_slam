@@ -16,8 +16,10 @@
 #include "Keyframe.hpp"
 #include <unordered_map>
 #include "Matchdata.hpp"
+#include <inekf_msgs/State.h>
 #include <queue>
 #include "ros/ros.h"
+#include <sophus/se3.hpp>
 // class keyframe{
 
 // };
@@ -54,8 +56,8 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     LoopClosingTool(fbow::Vocabulary* pDB);
    // bool detect_loop_test(const cv::Mat& img);
-    bool detect_loop(vector<Matchdata>& point_matches);
-    bool find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match);
+    bool detect_loop(vector<Matchdata>& point_matches,std::unordered_map<int, inekf_msgs::State>& states);
+    bool find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match,std::unordered_map<int, inekf_msgs::State>& states);
     // remove wrong pair with ransac
     int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
     //create feature
@@ -73,7 +75,7 @@ public:
         this->point_3d.clear();
         this->point_3d = point_3d;
     }
-    RelativePose eliminateOutliersPnP(Keyframe& current,Keyframe& candidate);
+    void eliminateOutliersPnP(Keyframe& current,Keyframe& candidate, RelativePose& pose);
     //update this
     void create_camera_p(){
         parameter = parameters();

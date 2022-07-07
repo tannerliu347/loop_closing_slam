@@ -7,7 +7,7 @@ LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB){
         currentGlobalKeyframeId = 0;
     }
 
-bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches){
+bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches,std::unordered_map<int, inekf_msgs::State>& states){
     
     if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < skip_frame_ ){
         return false;
@@ -20,14 +20,14 @@ bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches){
     //find match of current frame
     int candidate_id;
     Matchdata point_match;
-    bool loop_detected = find_connection(keyframes_.back(),candidate_id,point_match);
+    bool loop_detected = find_connection(keyframes_.back(),candidate_id,point_match,states);
     if(loop_detected){
         point_matches.push_back(point_match);
     }
     
     return loop_detected;
 }
-bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match){
+bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match,std::unordered_map<int, inekf_msgs::State>& states){
     class Compare_score{
         public:
         bool operator() (pair<int,double>& a, pair<int,double>& b) {
@@ -81,9 +81,29 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         // return false;
             continue;
             } 
-            //modifeies below
+            //calculate relative pose
+            // auto current_state = current_state;
+            if (states.find(candidate_id) == states.end()){
+                ROS_DEBUG_STREAM("cannot find candidate state");
+            }
+            if (states.find(frame.globalKeyframeID) == states.end()){
+                ROS_DEBUG_STREAM("cannot find current state");
+            }
+            auto old_state = states[candidate_id];
+            auto current_state = states[frame.globalKeyframeID];
+            Eigen::Vector3f    position_cur(current_state.position.x, current_state.position.y, current_state.position.z);
+            Eigen::Quaternionf poseOrientation_cur(current_state.orientation.w, current_state.orientation.x, current_state.orientation.y, current_state.orientation.z);
+            Sophus::SE3f currentInekfPose(poseOrientation_cur,position_cur);
+
+            Eigen::Vector3f    position_old(old_state.position.x, old_state.position.y, old_state.position.z);
+            Eigen::Quaternionf poseOrientation_old(old_state.orientation.w, old_state.orientation.x, old_state.orientation.y, old_state.orientation.z);
+            Sophus::SE3f oldInekfPose(poseOrientation_old,position_old);
+
+            Sophus::SE3f relativePose = oldInekfPose.inverse() * currentInekfPose;
+            RelativePose pose( relativePose.translation(),relativePose.rotationMatrix());
+
             int inlier = ransac_featureMatching(frame,keyframes_[candidate_id]);
-            RelativePose pose = eliminateOutliersPnP(frame,keyframes_[candidate_id]);
+            eliminateOutliersPnP(frame,keyframes_[candidate_id],pose);
             inlier = ransac_matches.size();
             //int inlier = 100;
             if (inlier > inlier_){
@@ -290,22 +310,22 @@ void LoopClosingTool::get3DfeaturePosition(vector<cv::Point3f> &point_3d, const 
 }
 
 void LoopClosingTool::assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos){
-    //cv::eigen2cv(rot, ransacRGuess);
-    //cv::eigen2cv(pos, ransacTGuess);
+    cv::eigen2cv(rot, ransacRGuess);
+    cv::eigen2cv(pos, ransacTGuess);
 }
 
-RelativePose LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate){
+void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate, RelativePose& pose){
+    cout <<"start loop closure pnp " << endl;
     ransac_matches.clear();
     vector<cv::Point3f> candidate_3d; //3d point from candidate
     get3DfeaturePosition(candidate_3d, candidate.depth,good_lastKeypoints);
     //candidate_3d = candidate.point_3d;
     get2DfeaturePosition(point_2d,goodKeypoints);
-    // if(candidate_3d.size() == 0){
-    //     throw "candidate_3d point empty";
-    // }
+    //ransac guess
+    assignRansacGuess(pose.rot,pose.pos);
     if (candidate_3d.size() >= 4) {
         cv::Mat inliers, ransacRVectorGuess;
-        //Rodrigues(ransacRGuess, ransacRVectorGuess);
+        Rodrigues(ransacRGuess, ransacRVectorGuess);
         //convert point 3d 2d size to same size
         vector<cv::Point2f> point_2d_use;
         vector<cv::Point3f>point_3d_use;
@@ -351,11 +371,11 @@ RelativePose LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& c
     cv::Mat imMatches;
 
     // get optimized pose 
-    Eigen::Vector3f pos;
-    cv::cv2eigen(ransacTGuess,pos);
+    
+    cv::cv2eigen(ransacTGuess,pose.pos);
     Eigen::Matrix3f rot;
-    cv::cv2eigen(ransacRGuess,rot);
-    RelativePose pose(pos,rot);
+    cv::cv2eigen(ransacRGuess,pose.rot);
+    
     id++;
      try {
         cv::drawMatches(lastImage, lastKeypoints, current.img, current.keypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
@@ -372,9 +392,9 @@ RelativePose LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& c
     } catch (...) {
        ROS_ERROR_STREAM("failed to plot");
     }
-    cout << "match size: " << good_matches.size() << "," << ransac_matches.size() << endl;
+    cout << "loopclosure pnp match size: " << good_matches.size() << "," << ransac_matches.size() << endl;
 
-    return pose;
+   
 }
 Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& current, Keyframe& candidate,vector<cv::DMatch>& returned_matches,RelativePose& pose){
     std::vector<int> candidate_globalId = candidate.globalIDs;

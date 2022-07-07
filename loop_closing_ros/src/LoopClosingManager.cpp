@@ -104,7 +104,8 @@ void LoopClosingManager::publishMatch(Matchdata& point_match){
     Eigen::Quaternionf poseOrientation_relative(point_match.rp_.rot);
     Sophus::SE3f relativePose(poseOrientation_relative,point_match.rp_.pos);
      
-    Sophus::SE3f currentPose_estimate = relativePose * oldInekfPose;
+    //Sophus::SE3f currentPose_estimate = relativePose * oldInekfPose;
+    Sophus::SE3f currentPose_estimate =  relativePose * oldInekfPose;
     auto t = currentPose_estimate.translation();
     auto q = currentPose_estimate.unit_quaternion().coeffs();
     geometry_msgs::Pose estimate_pose;
@@ -207,7 +208,10 @@ void LoopClosingManager::drawPoint(const geometry_msgs::Pose pose){
     test_point.header.stamp = ros::Time::now();
     test_point.ns =  "points";
     test_point.action = visualization_msgs::Marker::ADD;
-    test_point.pose.orientation.w = 1.0;
+    test_point.pose.orientation.w = pose.orientation.w;
+    test_point.pose.orientation.x = pose.orientation.x;
+    test_point.pose.orientation.y = pose.orientation.y;
+    test_point.pose.orientation.z = pose.orientation.z;
     test_point.pose.position.x = pose.position.x;
     test_point.pose.position.y= pose.position.y;
     test_point.pose.position.z = pose.position.z;
@@ -216,8 +220,8 @@ void LoopClosingManager::drawPoint(const geometry_msgs::Pose pose){
     test_point.color.r = 0.0;
     test_point.color.a = 1.0;
     test_point.scale.x = 1.0;
-    test_point.scale.y = 1.0;
-    test_point.scale.z = 1.0;
+    test_point.scale.y = 0.5;
+    test_point.scale.z = 0.5;
     test_point.type = visualization_msgs::Marker::ARROW;
   
     test_point_pub.publish(test_point);

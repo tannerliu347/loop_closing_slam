@@ -290,8 +290,8 @@ void LoopClosingTool::get3DfeaturePosition(vector<cv::Point3f> &point_3d, const 
 }
 
 void LoopClosingTool::assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos){
-    cv::eigen2cv(rot, ransacRGuess);
-    cv::eigen2cv(pos, ransacTGuess);
+    //cv::eigen2cv(rot, ransacRGuess);
+    //cv::eigen2cv(pos, ransacTGuess);
 }
 
 RelativePose LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate){
@@ -305,7 +305,7 @@ RelativePose LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& c
     // }
     if (candidate_3d.size() >= 4) {
         cv::Mat inliers, ransacRVectorGuess;
-        Rodrigues(ransacRGuess, ransacRVectorGuess);
+        //Rodrigues(ransacRGuess, ransacRVectorGuess);
         //convert point 3d 2d size to same size
         vector<cv::Point2f> point_2d_use;
         vector<cv::Point3f>point_3d_use;

@@ -24,6 +24,7 @@ bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches){
     if(loop_detected){
         point_matches.push_back(point_match);
     }
+    
     return loop_detected;
 }
 bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match){
@@ -362,7 +363,7 @@ RelativePose LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& c
         cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
         cv::imshow("image", imMatches);
         if(ransac_matches.size() > 2){
-            cv::imwrite("/root/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+           // cv::imwrite("/root/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
         }
         //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
         //cv::imshow("matches_window", imMatches);
@@ -389,6 +390,7 @@ Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& current, Keyframe& cand
         newmeasurement.emplace_back(current.keypoints[returned_matches[i].trainIdx]);
     }
     Matchdata point_match(current.globalKeyframeID,candidate.globalKeyframeID,cur_pointId,old_pointId,newmeasurement,pose);
+    
     //current_globalIDs = result_globalId;
     // return result_globalId;
     return point_match;

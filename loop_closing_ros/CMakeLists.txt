@@ -137,13 +137,16 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME} SHARED ${PROJECT_SOURCE_DIR}/src/LoopClosingTool.cpp ${PROJECT_SOURCE_DIR}/src/LoopClosingManager.cpp)
+add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 target_link_libraries( ${PROJECT_NAME}  PUBLIC
 ${OpenCV_LIBS} 
 ${Boost_LIBRARIES}
-boost_system)
+boost_system
+Sophus::Sophus)
 
 add_executable(LoopClosingMain ${PROJECT_SOURCE_DIR}/src/LoopClosingMain.cpp)
-target_link_libraries(LoopClosingMain PUBLIC ${PROJECT_NAME}  ${catkin_LIBRARIES} Sophus::Sophus ${fbow_LIBS})
+add_dependencies(LoopClosingMain ${catkin_EXPORTED_TARGETS})
+target_link_libraries(LoopClosingMain PUBLIC ${PROJECT_NAME}  ${catkin_LIBRARIES} ${fbow_LIBS})
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

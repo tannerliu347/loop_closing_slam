@@ -39,6 +39,10 @@ void dynamic_reconfig_callback(loop_closing_ros::LoopclosingConfig &config, uint
 
 int main(int argc, char **argv)
 {
+  if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug))
+  {
+        ros::console::notifyLoggerLevelsChanged();
+  }
   ros::init(argc, argv, "loop_closing");
   ros::NodeHandle nh;
   string vocab_path;

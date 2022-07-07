@@ -61,13 +61,13 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     loopDetector->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
     vector<Matchdata> point_matches;
     bool loopdetected = loopDetector->detect_loop(point_matches);
-
     //cv::imwrite("image"+std::to_string(keyframes.size())+".jpg",color );
+    ROS_DEBUG_STREAM("here");
     if (loopdetected){
         //update globalId
-        drawLine(point_matches.back().oldId_);
-        ROS_INFO_STREAM("loop_detected between" << point_matches.back().oldId_ << " and " << point_matches.back().curId_);
-        publishMatch(point_matches.back());
+        drawLine(point_matches[point_matches.size() -1].oldId_);
+        ROS_INFO_STREAM(point_matches.empty() <<" xxxxloop_detected between " << point_matches[point_matches.size() -1].oldId_ << " and " << point_matches[point_matches.size() -1].curId_);
+        publishMatch(point_matches[point_matches.size() -1]);
         //publish Matched data
     }
     // }else{
@@ -76,6 +76,7 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
 
 }
 void LoopClosingManager::publishMatch(Matchdata& point_match){
+    cout << point_match.curId_ <<" ---x-- " << point_match.oldId_ << endl;
     frontend::Match match_msg;
     if(point_match.point_current_.size() == 0){
         match_pub.publish(match_msg);
@@ -207,14 +208,18 @@ void LoopClosingManager::drawPoint(const geometry_msgs::Pose pose){
     test_point.ns =  "points";
     test_point.action = visualization_msgs::Marker::ADD;
     test_point.pose.orientation.w = 1.0;
-    test_point.id = markerId++;
+    test_point.pose.position.x = pose.position.x;
+    test_point.pose.position.y= pose.position.y;
+    test_point.pose.position.z = pose.position.z;
+    test_point.id = 0;
     test_point.color.b = 1.0;
     test_point.color.r = 0.0;
     test_point.color.a = 1.0;
-    test_point.scale.x = 0.1;
-    test_point.scale.y = 0.1;
-    test_point.scale.z = 0.1;
+    test_point.scale.x = 1.0;
+    test_point.scale.y = 1.0;
+    test_point.scale.z = 1.0;
     test_point.type = visualization_msgs::Marker::ARROW;
+  
     test_point_pub.publish(test_point);
 
 }

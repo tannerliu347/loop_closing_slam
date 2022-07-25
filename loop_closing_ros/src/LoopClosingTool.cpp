@@ -45,8 +45,8 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         fbow::fBow bowvector_cur;
         if(keyframes_[i].descriptors.empty()){
             //ROS_ERROR_STREAM("size" << keyframes_.size());
-            ROS_ERROR_STREAM(keyframes_[i].globalKeyframeID << " " << i  << "empty old descriptor");
-            //continue;
+            ROS_DEBUG_STREAM(keyframes_[i].globalKeyframeID << " " << i  << "empty old descriptor");
+            continue;
         }
         bowvector_cur = pDB_->transform(cur_desc);
         fbow::fBow bowvector_old;
@@ -81,6 +81,9 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         // return false;
             continue;
             } 
+            if (keyframes_[candidate_id].descriptors.empty()){
+                continue;
+            }
             //calculate relative pose
             // auto current_state = current_state;
             if (states.find(candidate_id) == states.end()){

@@ -60,8 +60,8 @@ int main(int argc, char **argv)
   //get parameters
   string keyframe_topic;
   string state_topic;
-  nh.param<string>("depth_topic",  keyframe_topic, "/frontend/keyframe");
-  nh.param<string>("state_topic", state_topic,  "/cheetah/inekf_estimation/inekf_state");
+  nh.param<string>("depth_topic",  keyframe_topic, "/backend/keyframe_out");
+  nh.param<string>("state_topic", state_topic,  "/backend/state_out");
   //message filters
   message_filters::Subscriber<frontend::Keyframe> keyframe_sub_(nh, keyframe_topic, 5000);
   message_filters::Subscriber<inekf_msgs::State> state_sub_(nh, state_topic, 5000);

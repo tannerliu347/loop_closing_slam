@@ -140,6 +140,7 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidat
     good_matches.clear();
     goodKeypoints.clear();
     good_lastKeypoints.clear();
+    good_lastpoint3d.clear();
     cv::Mat cur_descr,candidate_descr;
     std::vector<cv::KeyPoint> cur_keypoints, candidate_keypoints;
     cur_descr = current.descriptors;
@@ -182,9 +183,11 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidat
     // }
     good_matches.clear();
     good_matches = matches;
-     for (int i = 0; i < good_matches.size(); i++) {
+    auto candidate_3dpoints = candidate.point_3d;
+    for (int i = 0; i < good_matches.size(); i++) {
             goodKeypoints.push_back(cur_keypoints[good_matches[i].trainIdx]);
             good_lastKeypoints.push_back(candidate_keypoints[good_matches[i].queryIdx]);
+            good_lastpoint3d.push_back(candidate_3dpoints[good_matches[i].queryIdx]);
     }
 
     return good_matches.size();
@@ -268,7 +271,7 @@ void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int
 }
 void LoopClosingTool::generateKeyframe(){
     //calculate point 3d ]
-    get3DfeaturePosition(point_3d, currentDepth, goodKeypoints);
+    //get3DfeaturePosition(point_3d, currentDepth, goodKeypoints);
     if (currentDescriptors.empty()){
         ROS_ERROR_STREAM("empty descriptor");
         exit(1);
@@ -285,6 +288,7 @@ void LoopClosingTool::generateKeyframe(){
     
     goodKeypoints.clear();
     currentKeypoints.clear();
+    
    
 }
 void LoopClosingTool::get2DfeaturePosition(vector<cv::Point2f> &point_2d, const vector<cv::KeyPoint> &good_kp2){
@@ -320,8 +324,8 @@ void LoopClosingTool::assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen:
 void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate, RelativePose& pose){
     cout <<"start loop closure pnp " << endl;
     ransac_matches.clear();
-    vector<cv::Point3f> candidate_3d; //3d point from candidate
-    get3DfeaturePosition(candidate_3d, candidate.depth,good_lastKeypoints);
+    vector<cv::Point3f> candidate_3d = good_lastpoint3d; //3d point from candidate
+    //get3DfeaturePosition(candidate_3d, candidate.depth,good_lastKeypoints);
     //candidate_3d = candidate.point_3d;
     get2DfeaturePosition(point_2d,goodKeypoints);
     //ransac guess
@@ -381,17 +385,21 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
     
     id++;
      try {
-        cv::drawMatches(lastImage, lastKeypoints, current.img, current.keypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
-        //cv::imshow("matches_window", imMatches);
-        cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
-        cv::imshow("image", imMatches);
-        if(ransac_matches.size() > 2){
-           // cv::imwrite("/root/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+        if (ransac_matches.size() > inlier_){
+            cv::drawMatches(lastImage, lastKeypoints, current.img, current.keypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+            //cv::imshow("matches_window", imMatches);
+            cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
+            cv::imshow("image", imMatches);
+            if(ransac_matches.size() > 2){
+            // cv::imwrite("/root/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+            }
+            //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+            //cv::imshow("matches_window", imMatches);
+            //cv::waitKey(1);
+            cv::waitKey(1);
+            ROS_DEBUG_STREAM("Total match " << ransac_matches.size() );
         }
-        //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
-        //cv::imshow("matches_window", imMatches);
-        //cv::waitKey(1);
-        cv::waitKey(1);
+        
     } catch (...) {
        ROS_ERROR_STREAM("failed to plot");
     }

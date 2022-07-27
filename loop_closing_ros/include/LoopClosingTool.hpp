@@ -149,6 +149,7 @@ private:
     std::vector<cv::KeyPoint> currentKeypoints;
     std::vector<cv::KeyPoint> goodKeypoints;
     std::vector<cv::KeyPoint> good_lastKeypoints;
+    std::vector<cv::Point3f> good_lastpoint3d;
     std::vector<cv::Mat> descriptors;
     cv::Mat currentDescriptors;
     parameters parameter;

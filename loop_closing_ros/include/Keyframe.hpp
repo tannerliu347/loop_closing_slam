@@ -5,8 +5,39 @@
 #include <string>
 #include "opencv2/calib3d/calib3d.hpp"
 #include <iostream>
+#include <unordered_map>
+#include  <memory> 
+#include "ros/ros.h"
 using namespace std;
+class Landmarks{
+public: 
+    cv::Point3f &operator[] (int globalID){
+        if (points3d.find(globalID) != points3d.end()){
+            return points3d[globalID];
+        }
+    }
+    void update(const vector<int32_t>& globalIDs, const vector<cv::Point3f>&  newPoint){
+        //points3d[globalIDs] = newPoint[globalIDs];
+        for (int i = 0; i < globalIDs.size(); i ++){
+            int globalID = globalIDs[i];
+            points3d[globalID] = newPoint[i];
+        }
+    }
+    vector<cv::Point3f> get3dPoint(const vector<int32_t>& globalIDs){
+        vector<cv::Point3f> pointsOut;
+        for (auto globalID: globalIDs ){
+            if (points3d.find(globalID) == points3d.end()){
+                ROS_ERROR_STREAM("cannot find landmark" << globalID);
+            }else{
+                pointsOut.push_back(points3d[globalID]);
+            }
+            
+        }
+        return pointsOut;
+    }
+    unordered_map<int,cv::Point3f> points3d;
 
+};
 class Keyframe {
   public:
     cv::Mat              img;
@@ -16,8 +47,7 @@ class Keyframe {
     vector<cv::KeyPoint> keypoints;
     cv::Mat              descriptors;
     vector<int32_t>      globalIDs;
-    vector<cv::Point3f>  point_3d;
-
+    shared_ptr<Landmarks> ldmarks;
     // Keyframe(int16_t f_id, const cv::Mat kf, const cv::Mat dpt, const vector<cv::KeyPoint> &key_points, const cv::Mat dess)
     //     : frameID(f_id)
     //     , img(kf)
@@ -29,12 +59,13 @@ class Keyframe {
     Keyframe(){
         globalKeyframeID = -1;
     }
-    Keyframe(int32_t f_id, const cv::Mat kf,  const cv::Mat d,const vector<cv::KeyPoint> &key_points, const cv::Mat dess)
+    Keyframe(int32_t f_id, const cv::Mat kf,  const cv::Mat d,const vector<cv::KeyPoint> &key_points, const cv::Mat dess, shared_ptr<Landmarks> ldmarks)
         : globalKeyframeID(f_id)
         , img(kf)
         , depth(d)
         , featureNum(dess.rows)
-        , keypoints(key_points){
+        , keypoints(key_points)
+        , ldmarks(ldmarks){
         if (dess.empty()){
             cout << "failure empty " << endl;
         }
@@ -47,7 +78,7 @@ class Keyframe {
     void insertGlobalID(vector<int32_t>& g_ids) {
         globalIDs = g_ids;
     }
-    void insertPoint3D(vector<cv::Point3f>& p3d){
-        point_3d = p3d;
+    vector<cv::Point3f> get3dPoint(){
+        return ldmarks->get3dPoint(globalIDs);
     }
 };

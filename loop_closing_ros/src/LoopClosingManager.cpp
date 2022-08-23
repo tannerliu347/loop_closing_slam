@@ -9,7 +9,6 @@ void LoopClosingManager::setCore(ros::NodeHandle* nh, LoopClosingTool* ltr){
     frameCount = 0;
 }
 void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,const inekf_msgs::StateConstPtr &stateMsg){
-    keyframes.push_back(*msg);
     current_state = (*stateMsg);
     states[msg->frameID] = (*stateMsg);
     
@@ -53,11 +52,11 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
                                         ,msg-> features[i].class_id));
     }
     vector<int> matchingIndex;
-    loopDetector->assignNewFrame(color,depth,msg->frameID,globalId);
+    loopDetector->assignNewFrame(color,depth,msg->frameID);
     loopDetector->create_feature(keypoints);
     //loopDetector->create_feature();
     // loopDetector->set2DfeaturePosition(feature_2d);  
-    loopDetector->set3DfeaturePosition(feature_3d);
+    loopDetector->set3DfeaturePosition(feature_3d,globalId);
     //loopDetector->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
     vector<Matchdata> point_matches;
     bool loopdetected = loopDetector->detect_loop(point_matches,states);

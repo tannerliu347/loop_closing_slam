@@ -5,6 +5,7 @@ LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB){
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
         currentGlobalKeyframeId = 0;
+        landmarks_.reset(new Landmarks());
     }
 
 bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches,std::unordered_map<int, inekf_msgs::State>& states){
@@ -76,7 +77,6 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         //     // }
             if (candidate_score < minScoreAccept_) {
         // pDB_->addImg(img);
-        // //histKFs_.push_back(kf);
         // //std::cout << "added img\n";
         // return false;
             continue;
@@ -183,7 +183,7 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidat
     // }
     good_matches.clear();
     good_matches = matches;
-    auto candidate_3dpoints = candidate.point_3d;
+    auto candidate_3dpoints = candidate.get3dPoint();
     for (int i = 0; i < good_matches.size(); i++) {
             goodKeypoints.push_back(cur_keypoints[good_matches[i].trainIdx]);
             good_lastKeypoints.push_back(candidate_keypoints[good_matches[i].queryIdx]);
@@ -261,13 +261,11 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
     }
     
 }
-void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
+void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId){
     currentImage = img;
     currentDepth = depth;
     currentGlobalKeyframeId =  gloablKeyframeId;
     //currentGlobalKeyframeId++;
-    current_globalIDs = globalID;
-
 }
 void LoopClosingTool::generateKeyframe(){
     //calculate point 3d ]
@@ -281,8 +279,7 @@ void LoopClosingTool::generateKeyframe(){
             exit(1);
     }   
    
-    Keyframe kf(currentGlobalKeyframeId,currentImage,currentDepth,currentKeypoints,currentDescriptors);
-    kf.insertPoint3D(point_3d);
+    Keyframe kf(currentGlobalKeyframeId,currentImage,currentDepth,currentKeypoints,currentDescriptors,landmarks_);
     kf.insertGlobalID(current_globalIDs);
     keyframes_.push_back(kf);
     

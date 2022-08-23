@@ -63,7 +63,7 @@ public:
     //create feature
     void create_feature();
     void create_feature(std::vector<cv::KeyPoint> Keypoints);
-    void assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID);
+    void assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId);
     void generateKeyframe();
     void get2DfeaturePosition(vector<cv::Point2f> &point_2d, const vector<cv::KeyPoint> &good_kp2);
     void get3DfeaturePosition(vector<cv::Point3f> &point_3d, const cv::Mat &dpt1, const vector<cv::KeyPoint> &good_kp1);
@@ -71,9 +71,11 @@ public:
         this->point_2d.clear();
         this->point_2d = point_2d;
     }
-    void set3DfeaturePosition(vector<cv::Point3f> &point_3d){
+    void set3DfeaturePosition(vector<cv::Point3f> &point_3d,std::vector<int>& globalID){
         this->point_3d.clear();
         this->point_3d = point_3d;
+        landmarks_->update(globalID,point_3d);
+        current_globalIDs = globalID;
     }
     void eliminateOutliersPnP(Keyframe& current,Keyframe& candidate, RelativePose& pose);
     //update this
@@ -113,10 +115,9 @@ public:
    
 private:
     fbow::Vocabulary* pDB_;
-    float minScoreAccept_; // Disregard ones lower than this
     Eigen::MatrixXd* loopClosureMatch_;
     std::vector<Keyframe> keyframes_; //store keyframe class
-    std::vector<cv::Mat> histKFs_; // store image alone, may be delete
+    shared_ptr<Landmarks> landmarks_;
 
     //current matches and feature point
     vector<cv::DMatch> good_matches;
@@ -136,6 +137,7 @@ private:
     double ransacReprojectionError_;
     int ransacIterations_;
     double minimum_score;
+    float minScoreAccept_; // Disregard ones lower than this
     int inlier_; // Minimum number of inlier
     int top_match_; // Top N frame from fbow database to check for potential loop closure candidate
     int first_candidate_; // first frame to start check for loop closure candidate

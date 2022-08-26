@@ -9,18 +9,45 @@
 #include  <memory> 
 #include "ros/ros.h"
 using namespace std;
+class Landmark{
+public: 
+    int globalId;
+    Landmark(int globalId):globalId(globalId),inView(false){
+        
+    }
+    cv::Point3f getGlobalPos(){
+        return globalPos;
+    }
+    void updatePoint(cv::Point3f newData,bool inView){
+        globalPos = newData;
+        this->inView = inView;
+    }
+    bool getinView(){
+        return inView;
+    }
+    
+private:
+    bool inView;
+    cv::Point3f globalPos;
+    
+};
 class Landmarks{
 public: 
-    cv::Point3f &operator[] (int globalID){
+    cv::Point3f operator[] (int globalID){
         if (points3d.find(globalID) != points3d.end()){
-            return points3d[globalID];
+            return points3d[globalID]->getGlobalPos();
         }
     }
-    void update(const vector<int32_t>& globalIDs, const vector<cv::Point3f>&  newPoint){
+    void update(const vector<int32_t>& globalIDs, const vector<cv::Point3f>&  newPoint ,const vector<bool>&  inViews ){
         //points3d[globalIDs] = newPoint[globalIDs];
         for (int i = 0; i < globalIDs.size(); i ++){
             int globalID = globalIDs[i];
-            points3d[globalID] = newPoint[i];
+            if (points3d.find(globalID) == points3d.end()){
+                points3d[globalID].reset(new Landmark(globalID));
+            }else{
+                points3d[globalID]->updatePoint(newPoint[i],inViews[i]);
+            }
+            
         }
     }
     vector<cv::Point3f> get3dPoint(const vector<int32_t>& globalIDs){
@@ -29,13 +56,22 @@ public:
             if (points3d.find(globalID) == points3d.end()){
                 ROS_ERROR_STREAM("cannot find landmark" << globalID);
             }else{
-                pointsOut.push_back(points3d[globalID]);
+                pointsOut.push_back(points3d[globalID]->getGlobalPos());
             }
             
         }
         return pointsOut;
     }
-    unordered_map<int,cv::Point3f> points3d;
+    vector<shared_ptr<Landmark>> getInView3dPoint(){
+        vector<shared_ptr<Landmark>> inViewLandmarks;
+        for (auto landmarks: points3d){
+            if (landmarks.second->getinView()){
+                inViewLandmarks.push_back(landmarks.second);
+            }
+        }
+        return inViewLandmarks;
+    }
+    unordered_map<int,shared_ptr<Landmark>> points3d;
 
 };
 class Keyframe {

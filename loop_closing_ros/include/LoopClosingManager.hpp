@@ -37,7 +37,6 @@ private:
     ros::Publisher keyframe_pub;
     ros::Publisher match_pub;
     ros::Publisher test_point_pub;
-    std::unordered_map<int, inekf_msgs::State> states;
     inekf_msgs::State current_state;
     int markerId;
    

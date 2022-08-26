@@ -10,7 +10,7 @@ void LoopClosingManager::setCore(ros::NodeHandle* nh, LoopClosingTool* ltr){
 }
 void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,const inekf_msgs::StateConstPtr &stateMsg){
     current_state = (*stateMsg);
-    states[msg->frameID] = (*stateMsg);
+    loopDetector->states[msg->frameID] = (*stateMsg);
     
     //current pose
     Eigen::Vector3f    positionVector(stateMsg->position.x, stateMsg->position.y, stateMsg->position.z);
@@ -40,6 +40,7 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     std::vector<cv::Point2f> feature_2d;
     std::vector<cv::Point3f> feature_3d;
     std::vector<cv::KeyPoint> keypoints;
+    std::vector<bool> inView;
     for (int i = 0; i < msg-> features.size(); i ++){
         globalId.push_back(msg-> features[i].globalID);
         feature_2d.push_back(cv::Point2f(msg-> features[i].u,msg-> features[i].v));
@@ -50,16 +51,17 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
                                         ,msg-> features[i].response
                                         ,msg-> features[i].octave
                                         ,msg-> features[i].class_id));
+        inView.push_back(msg-> features[i].inview);
     }
     vector<int> matchingIndex;
     loopDetector->assignNewFrame(color,depth,msg->frameID);
     loopDetector->create_feature(keypoints);
     //loopDetector->create_feature();
     // loopDetector->set2DfeaturePosition(feature_2d);  
-    loopDetector->set3DfeaturePosition(feature_3d,globalId);
+    loopDetector->set3DfeaturePosition(feature_3d,globalId,inView);
     //loopDetector->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
     vector<Matchdata> point_matches;
-    bool loopdetected = loopDetector->detect_loop(point_matches,states);
+    bool loopdetected = loopDetector->detect_loop(point_matches);
     //cv::imwrite("image"+std::to_string(keyframes.size())+".jpg",color );
     if (loopdetected){
         //update globalId
@@ -117,8 +119,8 @@ void LoopClosingManager::publishMatch(Matchdata& point_match){
     // estimate_pose.position.z = t.z();
     // drawPoint(estimate_pose);
     // match_msg.betweenPose = estimate_pose;
-    auto current_state =  states[match_msg.curId];
-    auto old_state = states[match_msg.oldId];
+    auto current_state =  loopDetector->states[match_msg.curId];
+    auto old_state = loopDetector->states[match_msg.oldId];
     Eigen::Vector3f    position_cur(current_state.position.x, current_state.position.y, current_state.position.z);
     Eigen::Quaternionf poseOrientation_cur(current_state.orientation.w, current_state.orientation.x, current_state.orientation.y, current_state.orientation.z);
     Sophus::SE3f currentInekfPose(poseOrientation_cur,position_cur);
@@ -165,9 +167,9 @@ void LoopClosingManager::drawLine(int i){
     line_strip.scale.x = 0.1;
     //matching point
     geometry_msgs::Point matching_point;
-    matching_point.x = states[i].position.x;
-    matching_point.y= states[i].position.y;
-    matching_point.z = states[i].position.z;
+    matching_point.x = loopDetector->states[i].position.x;
+    matching_point.y= loopDetector->states[i].position.y;
+    matching_point.z = loopDetector->states[i].position.z;
     line_strip.points.push_back(p_current);
     line_strip.points.push_back(matching_point);
     closingLine_pub.publish(line_strip);
@@ -191,12 +193,12 @@ void LoopClosingManager::drawLine(const vector<int>& matchingIndex){
         line_strip.scale.x = 0.1;
         line_strip.scale.y = 0.1;
         line_strip.scale.z = 0.1;
-        line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+        line_strip.type = visualization_msgs::Marker::LINE_LIST;
         //matching point
         geometry_msgs::Point matching_point;
-        matching_point.x = states[i].position.x;
-        matching_point.y= states[i].position.y;
-        matching_point.z = states[i].position.z;
+        matching_point.x = loopDetector->states[i].position.x;
+        matching_point.y= loopDetector->states[i].position.y;
+        matching_point.z = loopDetector->states[i].position.z;
         line_strip.points.push_back(p_current);
         line_strip.points.push_back(matching_point);
         closingLine_pub.publish(line_strip);

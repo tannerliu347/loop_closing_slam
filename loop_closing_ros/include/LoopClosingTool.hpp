@@ -115,7 +115,7 @@ private:
     fbow::Vocabulary* pDB_;
     float minScoreAccept_; // Disregard ones lower than this
     Eigen::MatrixXd* loopClosureMatch_;
-    std::vector<Keyframe> keyframes_; //store keyframe class
+    std::unordered_map<int,Keyframe> keyframes_; //store keyframe class
     std::vector<cv::Mat> histKFs_; // store image alone, may be delete
 
     //current matches and feature point

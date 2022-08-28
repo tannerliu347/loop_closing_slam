@@ -20,7 +20,7 @@ bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches,std::unordere
     //find match of current frame
     int candidate_id;
     Matchdata point_match;
-    bool loop_detected = find_connection(keyframes_.back(),candidate_id,point_match,states);
+    bool loop_detected = find_connection(keyframes_[currentGlobalKeyframeId],candidate_id,point_match,states);
     if(loop_detected){
         point_matches.push_back(point_match);
     }
@@ -43,16 +43,24 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     bool loop_detected = false;
     for (int i = 0; i < (int(frame.globalKeyframeID) - int(near_frame_)); i ++ ){
         fbow::fBow bowvector_cur;
-        if(keyframes_[i].descriptors.empty()){
-            //ROS_ERROR_STREAM("size" << keyframes_.size());
-            ROS_DEBUG_STREAM(keyframes_[i].globalKeyframeID << " " << i  << "empty old descriptor");
-            continue;
-        }
+        // if(keyframes_[i].descriptors.empty()){
+        //     //ROS_ERROR_STREAM("size" << keyframes_.size());
+        //     ROS_DEBUG_STREAM(keyframes_[i].globalKeyframeID << " " << i  << "empty old descriptor");
+        //     continue;
+        // }
         bowvector_cur = pDB_->transform(cur_desc);
         fbow::fBow bowvector_old;
         bowvector_old = pDB_->transform(keyframes_[i].descriptors);
         double score = fbow::fBow::score(bowvector_cur,bowvector_old);
         pq.push( std::make_pair (i, score));
+    }
+    //calculate score of prev frame 
+    double prevScore = 1;
+    if(keyframes_.count(frame.globalKeyframeID -1)!= 0){
+        fbow::fBow bowvector_prev = pDB_->transform(keyframes_[frame.globalKeyframeID -1].descriptors);
+        fbow::fBow bowvector_cur = pDB_->transform(cur_desc);
+        prevScore = fbow::fBow::score(bowvector_cur,bowvector_prev);
+        ROS_DEBUG_STREAM("prevScore is "<< prevScore);
     }
     // simple logic check to filter out unwanted
     if (pq.empty()) {
@@ -74,18 +82,20 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         //     // if (abs(int(r.Id) - int(rets[i-1].Id)) < 3 ){
         //     //     continue;
         //     // }
-            if (candidate_score < minScoreAccept_) {
+        
+            if (candidate_score <= prevScore) {
         // pDB_->addImg(img);
         // //histKFs_.push_back(kf);
         // //std::cout << "added img\n";
         // return false;
             continue;
             } 
-            if (keyframes_[candidate_id].descriptors.empty()){
-                continue;
-            }
+            // if (keyframes_[candidate_id].descriptors.empty()){
+            //     continue;
+            // }
             //calculate relative pose
             // auto current_state = current_state;
+             ROS_DEBUG_STREAM("candidate_id "<< candidate_id << "  score::  " << candidate_score);
             if (states.find(candidate_id) == states.end()){
                 ROS_DEBUG_STREAM("cannot find candidate state");
             }
@@ -104,9 +114,14 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
 
             Sophus::SE3f relativePose = oldInekfPose.inverse() * currentInekfPose;
             RelativePose pose( relativePose.translation(),relativePose.rotationMatrix());
-
-            int inlier = ransac_featureMatching(frame,keyframes_[candidate_id]);
-            eliminateOutliersPnP(frame,keyframes_[candidate_id],pose);
+            Keyframe candidate_frame;
+            if (keyframes_.count(candidate_id) != 0){
+                candidate_frame = keyframes_[candidate_id];
+            }else{
+                ROS_ERROR_STREAM("cannot find frame " << candidate_id);
+            }
+            int inlier = ransac_featureMatching(frame,candidate_frame);
+            eliminateOutliersPnP(frame,candidate_frame,pose);
             inlier = ransac_matches.size();
             //int inlier = 100;
             if (inlier > inlier_){
@@ -284,7 +299,11 @@ void LoopClosingTool::generateKeyframe(){
     Keyframe kf(currentGlobalKeyframeId,currentImage,currentDepth,currentKeypoints,currentDescriptors);
     kf.insertPoint3D(point_3d);
     kf.insertGlobalID(current_globalIDs);
-    keyframes_.push_back(kf);
+    if(keyframes_.count(currentGlobalKeyframeId) ==0 ){
+        keyframes_[currentGlobalKeyframeId] = kf;
+    }else{
+        ROS_ERROR_STREAM("Redundant keyframe detected ");
+    }
     
     goodKeypoints.clear();
     currentKeypoints.clear();
@@ -335,7 +354,7 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
         Rodrigues(ransacRGuess, ransacRVectorGuess);
         //convert point 3d 2d size to same size
         vector<cv::Point2f> point_2d_use;
-        vector<cv::Point3f>point_3d_use;
+        vector<cv::Point3f> point_3d_use;
         // if (point_2d.size() >=  candidate_3d.size()){
         //     point_3d_use = candidate_3d;
         //     for(int i = 0 ; i <  candidate_3d.size() ;i ++){
@@ -390,9 +409,9 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
             //cv::imshow("matches_window", imMatches);
             cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
             cv::imshow("image", imMatches);
-            if(ransac_matches.size() > 2){
-            // cv::imwrite("/root/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
-            }
+            //if(ransac_matches.size() > 2){
+                 cv::imwrite("/home/bigby/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+            //}
             //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
             //cv::imshow("matches_window", imMatches);
             //cv::waitKey(1);

@@ -415,17 +415,18 @@ bool LoopClosingTool::NormlocalFrameLandmakrPos(int globalId,int frameID,cv::Poi
     TransWC.block<3,1>(0,3) = positionVector;
 
     auto TransCW = TransWC.inverse();
-    Eigen::Vector4f ptNorm = TransCW*Eigen::Vector4f(ptGlobal.x,ptGlobal.y,ptGlobal.z,1);
+    Eigen::Vector4f ptNorm = TransWC*Eigen::Vector4f(ptGlobal.x,ptGlobal.y,ptGlobal.z,1);
     //normalization 
     if (ptNorm[2] < 0){
         return false;
     } 
     ptNorm = ptNorm/ptNorm[2];
-    auto ptLocal = Eigen::Vector3f(ptNorm[0], ptNorm[1], ptNorm[2]);
+    auto ptLocal = Eigen::Vector3f(ptNorm[0], ptNorm[1], ptNorm[2]); 
     auto K = Eigen::Matrix3f();
     K  << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.;
     ptLocal = K* ptLocal;
     result = cv::Point3f( ptLocal[0], ptLocal[1], ptLocal[2]);
+    ROS_DEBUG_STREAM("originalPoint " << ptGlobal.x << " " << ptGlobal.y << " " << ptGlobal.z);
     ROS_DEBUG_STREAM("projectedPoint " << ptLocal[0] << " " << ptLocal[1]  << " " << ptLocal[2]);
 
     if (result.x < 0 || result.y < 0){
@@ -458,7 +459,6 @@ void LoopClosingTool::searchByProjection(Keyframe& current,Keyframe& candidate){
         if (!NormlocalFrameLandmakrPos(id,current.globalKeyframeID,ptLocal)){
             continue;
         }
-        ROS_DEBUG_STREAM("landmark" << id << " project in to " << current.globalKeyframeID << "get " << ptLocal.x << "  " << ptLocal.y);
         //search closest point
         float minDistance = 1e9;
         float minID = -1;
@@ -470,6 +470,7 @@ void LoopClosingTool::searchByProjection(Keyframe& current,Keyframe& candidate){
                 
                             }
             float distance = norm(landmarks_->getDescriptor(id),current.descriptors.row(j),cv::NORM_L2);
+            ROS_DEBUG_STREAM("landmark distance " << distance);
             //distance = sqrt(distance);
             if (distance < minDistance){
                 minDistance = distance;

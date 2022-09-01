@@ -12,6 +12,7 @@ using namespace std;
 class Landmark{
 public: 
     int globalId;
+    cv::Mat descriptor;
     Landmark(int globalId):globalId(globalId),inView(false){
         
     }
@@ -38,6 +39,9 @@ public:
             return points3d[globalID]->getGlobalPos();
         }
     }
+    cv::Mat getDescriptor(int globalID){
+        return points3d[globalID] ->descriptor;
+    }
     void update(const vector<int32_t>& globalIDs, const vector<cv::Point3f>&  newPoint ,const vector<bool>&  inViews ){
         //points3d[globalIDs] = newPoint[globalIDs];
         for (int i = 0; i < globalIDs.size(); i ++){
@@ -50,6 +54,14 @@ public:
             
         }
     }
+    void updateDescriptor(const vector<int32_t>& globalIDs, cv::Mat& discriptrors){
+          ROS_DEBUG_STREAM("globalID size" <<   globalIDs.size() << "descriptor size " << discriptrors.rows);
+        int i = 0;
+        for(auto globalID:globalIDs){
+            points3d[globalID]->descriptor = discriptrors.row(i);
+            i++;
+        }
+    };
     vector<cv::Point3f> get3dPoint(const vector<int32_t>& globalIDs){
         vector<cv::Point3f> pointsOut;
         for (auto globalID: globalIDs ){

@@ -76,8 +76,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         //     //     continue;
         //     // }
             if (candidate_score < minScoreAccept_) {
-        // pDB_->addImg(img);
-        // //std::cout << "added img\n";
+        // pDB_->addImg(img)
         // return false;
             continue;
             } 
@@ -104,7 +103,6 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
 
             Sophus::SE3f relativePose = oldInekfPose.inverse() * currentInekfPose;
             RelativePose pose( relativePose.translation(),relativePose.rotationMatrix());
-
             int inlier = ransac_featureMatching(frame,keyframes_[candidate_id]);
             eliminateOutliersPnP(frame,keyframes_[candidate_id],pose);
             searchByProjection(frame,keyframes_[candidate_id]);
@@ -256,12 +254,10 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
             detector = cv::AKAZE::create();
             break;
         }
-    if (featureType_ == 0){
-        auto descriptor = cv::xfeatures2d::BEBLID::create(1.0);
-        descriptor->compute(currentImage,Keypoints, currentDescriptors);
-    }else{
+
         detector->compute(currentImage, Keypoints,currentDescriptors);
-    }
+        landmarks_->updateDescriptor(current_globalIDs,currentDescriptors);
+    
     
 }
 void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId){
@@ -372,7 +368,7 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
             cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
             cv::imshow("image", imMatches);
             if(ransac_matches.size() > 2){
-             cv::imwrite("/home/bigby/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+            // cv::imwrite("/home/bigby/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
             }
             //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
             //cv::imshow("matches_window", imMatches);
@@ -429,13 +425,16 @@ bool LoopClosingTool::NormlocalFrameLandmakrPos(int globalId,int frameID,cv::Poi
     auto K = Eigen::Matrix3f();
     K  << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.;
     ptLocal = K* ptLocal;
-    result = cv::Point3f( ptNorm[0], ptNorm[1], ptNorm[2]);
+    result = cv::Point3f( ptLocal[0], ptLocal[1], ptLocal[2]);
+    ROS_DEBUG_STREAM("projectedPoint " << ptLocal[0] << " " << ptLocal[1]  << " " << ptLocal[2]);
+
     if (result.x < 0 || result.y < 0){
         return false;
     } 
     return true;
 }
 void LoopClosingTool::searchByProjection(Keyframe& current,Keyframe& candidate){
+    ROS_DEBUG_STREAM("start search by Projection");
     unordered_map<int,int> matchedPoint;
     std::vector<int> current_globalIDs = current.globalIDs;
     std::vector<int> candidate_globalIDs = candidate.globalIDs;
@@ -446,7 +445,7 @@ void LoopClosingTool::searchByProjection(Keyframe& current,Keyframe& candidate){
     }
     auto candidateldGlobal = landmarks_->get3dPoint(candidate_globalIDs);
     auto currentldGlobal = landmarks_->get3dPoint(current_globalIDs);
-    float threshDistance = 5;
+    float threshDistance = 10000;
     for (int i = 0; i < candidate_globalIDs.size(); i++){
         int id = candidate_globalIDs[i];
 
@@ -467,26 +466,29 @@ void LoopClosingTool::searchByProjection(Keyframe& current,Keyframe& candidate){
             auto currentKeypoint = currentldGlobal[j];
             if (matchedPoint.count(current_globalIDs[j]) != 0){
                 continue;
-            }
-            float distance = pow(currentKeypoint.x - ptLocal.x,2) +  pow(currentKeypoint.y - ptLocal.y,2);
-            distance = sqrt(distance);
+                
+                
+                            }
+            float distance = norm(landmarks_->getDescriptor(id),current.descriptors.row(j),cv::NORM_L2);
+            //distance = sqrt(distance);
             if (distance < minDistance){
                 minDistance = distance;
                 minID = j;
             }
         }
-        if (minDistance > threshDistance){
-            continue;
-        }else{
+        // if (minDistance > threshDistance){
+        //     continue;
+        // }else{
             cv::DMatch newMatch;
             newMatch.queryIdx = i;
             newMatch.trainIdx = minID;
             additionalMatch.push_back(newMatch);
             matchedPoint[current_globalIDs[minID]] = 1;
             matchedPoint[id] = 1;
-        }
+        //}
 
     }
+
     if (!additionalMatch.empty()){
         cv::Mat imMatches;
         cv::drawMatches(candidate.img, candidate.keypoints, current.img, current.keypoints, additionalMatch,imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
@@ -494,7 +496,7 @@ void LoopClosingTool::searchByProjection(Keyframe& current,Keyframe& candidate){
         cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
         cv::imshow("image", imMatches);
         id++;
-        //cv::imwrite("/home/bigby/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+        cv::imwrite("/home/bigby/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
         
         //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
         //cv::imshow("matches_window", imMatches);

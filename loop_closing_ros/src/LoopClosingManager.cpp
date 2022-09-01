@@ -55,10 +55,10 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     }
     vector<int> matchingIndex;
     loopDetector->assignNewFrame(color,depth,msg->frameID);
+    loopDetector->set3DfeaturePosition(feature_3d,globalId,inView);
     loopDetector->create_feature(keypoints);
     //loopDetector->create_feature();
     // loopDetector->set2DfeaturePosition(feature_2d);  
-    loopDetector->set3DfeaturePosition(feature_3d,globalId,inView);
     //loopDetector->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
     vector<Matchdata> point_matches;
     bool loopdetected = loopDetector->detect_loop(point_matches);

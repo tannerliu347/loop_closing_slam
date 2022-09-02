@@ -51,7 +51,7 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
                                         ,msg-> features[i].response
                                         ,msg-> features[i].octave
                                         ,msg-> features[i].class_id));
-        inView.push_back(msg-> features[i].inview);
+        //inView.push_back(msg-> features[i].inview);
     }
     vector<int> matchingIndex;
     loopDetector->assignNewFrame(color,depth,msg->frameID);
@@ -165,6 +165,7 @@ void LoopClosingManager::drawLine(int i){
     line_strip.color.r = 1.0;
     line_strip.color.a = 1.0;
     line_strip.scale.x = 0.1;
+     line_strip.type = visualization_msgs::Marker::LINE_STRIP;
     //matching point
     geometry_msgs::Point matching_point;
     matching_point.x = loopDetector->states[i].position.x;

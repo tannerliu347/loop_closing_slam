@@ -49,7 +49,7 @@ public:
             if (points3d.find(globalID) == points3d.end()){
                 points3d[globalID].reset(new Landmark(globalID));
             }else{
-                points3d[globalID]->updatePoint(newPoint[i],inViews[i]);
+                points3d[globalID]->updatePoint(newPoint[i],true);
             }
             
         }

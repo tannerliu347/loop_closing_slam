@@ -151,7 +151,7 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidat
     //create a matcher (Flann ) 
     // matcher.match( cur_descr, candidate_descr, matches );
     //mathcer brute force
-    cv::BFMatcher matcher( cv::NORM_L2SQR,false);
+    cv::BFMatcher matcher( cv::NORM_HAMMING,true);
     std::vector<cv::DMatch> matches;
     ROS_DEBUG_STREAM("original match size "<< matches.size());
     matcher.match( candidate_descr,cur_descr, matches );

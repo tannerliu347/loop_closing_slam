@@ -9,6 +9,10 @@ void LoopClosingManager::setCore(ros::NodeHandle* nh, LoopClosingTool* ltr){
     frameCount = 0;
 }
 void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,const inekf_msgs::StateConstPtr &stateMsg){
+    if (!this->cameraInfoInitialized){
+        ROS_ERROR_STREAM("ERROR: Camera not initialized");
+        return;
+    }
     current_state = (*stateMsg);
     loopDetector->states[msg->frameID] = (*stateMsg);
     

@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <opencv2/xfeatures2d.hpp>
 LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB){   
-        camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
         currentGlobalKeyframeId = 0;
         landmarks_.reset(new Landmarks());
@@ -312,7 +311,7 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
         Rodrigues(ransacRGuess, ransacRVectorGuess);
         //convert point 3d 2d size to same size
         vector<cv::Point2f> point_2d_use;
-        vector<cv::Point3f>point_3d_use;
+        vector<cv::Point3f> point_3d_use;
         // if (point_2d.size() >=  candidate_3d.size()){
         //     point_3d_use = candidate_3d;
         //     for(int i = 0 ; i <  candidate_3d.size() ;i ++){
@@ -326,7 +325,7 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
         // }
         cv::solvePnPRansac(candidate_3d,
                            point_2d,
-                           camera_mat,
+                           camera->K_cv(),
                            distort,
                            ransacRVectorGuess,
                            ransacTGuess,

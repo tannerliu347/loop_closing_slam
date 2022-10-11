@@ -19,6 +19,7 @@
 #include <inekf_msgs/State.h>
 #include <queue>
 #include "ros/ros.h"
+#include "camera.h"
 #include <sophus/se3.hpp>
 // class keyframe{
 
@@ -80,11 +81,6 @@ public:
     }
     void eliminateOutliersPnP(Keyframe& current,Keyframe& candidate, RelativePose& pose);
     bool NormlocalFrameLandmakrPos(int globalId,int frameID,cv::Point3f& result);
-    //update this
-    void create_camera_p(){
-        parameter = parameters();
-    }
-
     void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
     Matchdata genearteNewGlobalId(Keyframe& current, Keyframe& candidate,vector<cv::DMatch>& returned_matches,RelativePose& pose);
 
@@ -115,6 +111,7 @@ public:
         pDB_->readFromFile(path);
     }
    std::unordered_map<int, inekf_msgs::State> states;
+   shared_ptr<Camera> camera;
 private:
     fbow::Vocabulary* pDB_;
     Eigen::MatrixXd* loopClosureMatch_;

@@ -136,7 +136,8 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(${PROJECT_NAME} SHARED ${PROJECT_SOURCE_DIR}/src/LoopClosingTool.cpp ${PROJECT_SOURCE_DIR}/src/LoopClosingManager.cpp)
+add_library(${PROJECT_NAME} SHARED ${PROJECT_SOURCE_DIR}/src/LoopClosingTool.cpp ${PROJECT_SOURCE_DIR}/src/LoopClosingManager.cpp
+${PROJECT_SOURCE_DIR}/src/util.cpp  ${PROJECT_SOURCE_DIR}/src/camera.cpp)
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 target_link_libraries( ${PROJECT_NAME}  PUBLIC
 ${OpenCV_LIBS} 

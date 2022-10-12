@@ -12,7 +12,9 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     keyframes.push_back(*msg);
     current_state = (*stateMsg);
     states[msg->frameID] = (*stateMsg);
-    
+    if (!cameraIntialized){
+        ROS_ERROR_STREAM("Camera not intialized");
+    }
     //current pose
     Eigen::Vector3f    positionVector(stateMsg->position.x, stateMsg->position.y, stateMsg->position.z);
     Eigen::Quaternionf poseOrientation(stateMsg->orientation.w, stateMsg->orientation.x, stateMsg->orientation.y, stateMsg->orientation.z);
@@ -60,7 +62,7 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     loopDetector->set3DfeaturePosition(feature_3d);
     //loopDetector->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
     vector<Matchdata> point_matches;
-    bool loopdetected = loopDetector->detect_loop(point_matches,states);
+    bool loopdetected = loopDetector->detect_loop(point_matches,current_state);
     //cv::imwrite("image"+std::to_string(keyframes.size())+".jpg",color );
     if (loopdetected){
         //update globalId

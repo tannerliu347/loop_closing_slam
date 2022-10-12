@@ -20,6 +20,9 @@
 #include "LoopClosingManager.hpp"
 #include "camera.h"
 #include "config.h"
+#include <tf/transform_listener.h>
+#include <tf_conversions/tf_eigen.h>
+#include <frontend/FeatureUpdate.h>
 //loop closing entry
 LoopClosingManager loop_manager;
 shared_ptr<Camera>              camera;
@@ -31,15 +34,36 @@ void filterCallback(const inekf_msgs::StateConstPtr &stateMsg,const frontend::Ke
 };
 
 
+void get_sensor_poses() {
+    tf::TransformListener listener;
+    tf::StampedTransform  transform;
+    Eigen::Matrix3d       tmpMatrix;
+    Eigen::Vector3d       tmpVector;
+    try {
+        listener.waitForTransform(config->cameraFrame, config->bodyFrame, ros::Time(0), ros::Duration(10.0));
+        listener.lookupTransform(config->cameraFrame, config->bodyFrame, ros::Time(0), transform);
+        
+        config->cameraPoseInitialized = true;
+        Eigen::Matrix3d tmpRot;
+        Eigen::Vector3d tmpPos;
+        tf::matrixTFToEigen(transform.getBasis(), tmpRot);
+        tf::vectorTFToEigen(transform.getOrigin(), tmpPos);
+        config->cameraPoseRotation    = tmpRot.cast<float>();
+        config->cameraPoseTranslation = tmpPos.cast<float>();
+        camera->updateExtrinsic(Sophus::SE3f(config->cameraPoseRotation,config->cameraPoseTranslation));
+    } catch (tf::TransformException &ex) {
+        ROS_ERROR("%s", ex.what());
+    }
+}
 
-void dynamic_reconfig_callback(loop_closing_ros::LoopclosingConfig &config, uint32_t level) {
-    loop_manager.loopDetector->setVocabularyfile(config.vocab_path);
-    loop_manager.loopDetector->setFeatureType(config.feature_type);
-    loop_manager.loopDetector->setRansacP(config.ransac_reprojection_error,config.ransac_iterations);
-    loop_manager.loopDetector->setInlier_(config.inlier);
-    loop_manager.loopDetector->setTop_match(config.top_match);
-    loop_manager.loopDetector->setMinScoreAccept(config.min_score);
-    loop_manager.loopDetector->setFrameskip(config.skip_frame,config.first_candidate,config.near_frame);
+void dynamic_reconfig_callback(loop_closing_ros::LoopclosingConfig &configs, uint32_t level) {
+    loop_manager.loopDetector->setVocabularyfile(configs.vocab_path);
+    loop_manager.loopDetector->setFeatureType(configs.feature_type);
+    loop_manager.loopDetector->setRansacP(configs.ransac_reprojection_error,configs.ransac_iterations);
+    loop_manager.loopDetector->setInlier_(configs.inlier);
+    loop_manager.loopDetector->setTop_match(configs.top_match);
+    loop_manager.loopDetector->setMinScoreAccept(configs.min_score);
+    loop_manager.loopDetector->setFrameskip(configs.skip_frame,configs.first_candidate,configs.near_frame);
 }
 void handle_camera_info(sensor_msgs::CameraInfo::Ptr msg) {
     // config->cameraInfoInitialized = true;
@@ -47,6 +71,11 @@ void handle_camera_info(sensor_msgs::CameraInfo::Ptr msg) {
     config->imageWidth            = msg->width;
     config->imageHeight           = msg->height;
     camera->updateParameter( msg->K[0],msg->K[4],msg->K[2], msg->K[5]);
+    loop_manager.cameraIntialized = true;
+}
+void handle_landmark_update(frontend::FeatureUpdate::Ptr msg){
+    loop_manager.loopDetector->landmark_manager->updateLandmark(msg->globalIDs,msg->points);
+    ROS_INFO_STREAM("Receive point update_loopclosing");
 }
 int main(int argc, char **argv)
 {
@@ -76,7 +105,7 @@ int main(int argc, char **argv)
   string camera_info;
   nh.param<string>("depth_topic",  keyframe_topic, "/backend/keyframe_out");
   nh.param<string>("state_topic", state_topic,  "/backend/state_out");
-
+  nh.param<string>("camera_info_topic", camera_info,  "/camera/color/camera_info");
   //message filters
   message_filters::Subscriber<frontend::Keyframe> keyframe_sub_(nh, keyframe_topic, 5000);
   message_filters::Subscriber<inekf_msgs::State> state_sub_(nh, state_topic, 5000);
@@ -86,7 +115,10 @@ int main(int argc, char **argv)
 //message_filters::Subscriber<sensor_msgs::msg::Image> disparity_sub_;
   // set camera info
   ros::Subscriber subCameraInfo = nh.subscribe(camera_info, 10, &handle_camera_info);
-
+  //update optimized Point
+  ros::Subscriber subLandmark = nh.subscribe("/backend/landmarksId_out", 10, &handle_landmark_update);
+  // load poses
+  get_sensor_poses();
   ros::spin();
 
   return 0;

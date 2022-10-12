@@ -19,7 +19,7 @@
 #include <loop_closing_ros/LoopclosingConfig.h>
 class LoopClosingManager{
 public:
-    LoopClosingManager(){markerId = 0;}
+    LoopClosingManager(){markerId = 0;cameraIntialized=false;}
     
     //set up loop closure tool
     void setCore(ros::NodeHandle* nh, LoopClosingTool* ltr);
@@ -30,6 +30,7 @@ public:
     void drawPoint(const geometry_msgs::Pose pose);
     int frameCount;
     LoopClosingTool* loopDetector;
+    bool cameraIntialized;
 private: 
     ros::NodeHandle* nh;
     //ros::Subscriber keyframeSub_;

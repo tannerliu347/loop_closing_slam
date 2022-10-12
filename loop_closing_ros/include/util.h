@@ -6,6 +6,8 @@
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
 #include <opencv2/core/core.hpp>
+#include <inekf_msgs/State.h>
+
 /**
  * @brief bilinear interporation to compute the pixel intensity at (x, y).
  */
@@ -23,6 +25,6 @@ cv::Point3f eigenTocv(Eigen::Vector3f p_e);
 cv::Point2f eigenTocv(Eigen::Vector2f p_e);
 Eigen::Vector3f cvToeigen(cv::Point3f p_c);
 Eigen::Vector2f cvToeigen(cv::Point2f p_c);
-
+Sophus::SE3f stateTose3( inekf_msgs::State state);
 
 #endif // SIMPLE_DVO_UTIL_H

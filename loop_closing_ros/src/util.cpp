@@ -76,3 +76,8 @@ Eigen::Vector2f cvToeigen(cv::Point2f p_c){
     p_e[1] = p_c.y;
     return p_e;
 }
+Sophus::SE3f stateTose3( inekf_msgs::State state){
+    Eigen::Vector3f    positionVector(state.position.x,state.position.y, state.position.z);
+    Eigen::Quaternionf poseOrientation(state.orientation.w, state.orientation.x, state.orientation.y, state.orientation.z);
+    return  Sophus::SE3f(poseOrientation,positionVector);
+}

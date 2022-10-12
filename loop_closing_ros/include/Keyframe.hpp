@@ -50,4 +50,7 @@ class Keyframe {
     void insertPoint3D(vector<cv::Point3f>& p3d){
         point_3d = p3d;
     }
+    void updateDescriptors(cv::Mat descriptors){
+        this->descriptors =descriptors;
+    }
 };

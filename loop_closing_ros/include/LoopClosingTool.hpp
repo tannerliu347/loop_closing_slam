@@ -23,6 +23,7 @@
 #include <memory>
 #include "camera.h"
 #include "config.h"
+#include "landmark_manager.h"
 // class keyframe{
 
 // };
@@ -59,11 +60,13 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     LoopClosingTool(fbow::Vocabulary* pDB,shared_ptr<Camera> camera,shared_ptr<Config> config);
    // bool detect_loop_test(const cv::Mat& img);
-    bool detect_loop(vector<Matchdata>& point_matches,std::unordered_map<int, inekf_msgs::State>& states);
-    bool find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match,std::unordered_map<int, inekf_msgs::State>& states);
+    bool detect_loop(vector<Matchdata>& point_matches,inekf_msgs::State state);
+    bool find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match);
     // remove wrong pair with ransac
     void eliminateOutliersFundamental(Keyframe& current,Keyframe& candidate);
     int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
+    void pnpCorrespondence();
+    bool visualizePointMatch(int landmarkID,cv::Point2f point,cv::Point2f projectedLocation);
     //create feature
     void create_feature();
     void create_feature(std::vector<cv::KeyPoint> Keypoints);
@@ -114,7 +117,8 @@ public:
     void setVocabularyfile(string path){
         pDB_->readFromFile(path);
     }
-   
+    shared_ptr<LandmarkManager> landmark_manager;
+    unordered_map<int,int> processedID;
 private:
     fbow::Vocabulary* pDB_;
     float minScoreAccept_; // Disregard ones lower than this
@@ -165,5 +169,8 @@ private:
     shared_ptr<Camera> camera_;
 
     shared_ptr<Config> config_;
+
+    std::unordered_map<int, inekf_msgs::State> states;
+   
    //std::vector<KeyFrame> histKFs_
 };

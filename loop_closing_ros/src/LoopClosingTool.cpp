@@ -1,7 +1,9 @@
 #include "LoopClosingTool.hpp"
 #include <algorithm>
 #include <opencv2/xfeatures2d.hpp>
-LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB){   
+LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB,shared_ptr<Camera> camera,shared_ptr<Config> config):pDB_(pDB),
+                                                                                                            camera_(camera),
+                                                                                                            config_(config){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
         currentGlobalKeyframeId = 0;
@@ -43,6 +45,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     bool loop_detected = false;
     for (int i = 0; i < (int(frame.globalKeyframeID) - int(near_frame_)); i ++ ){
         fbow::fBow bowvector_cur;
+        if (keyframes_[i].globalKeyframeID  < 0) continue;
         // if(keyframes_[i].descriptors.empty()){
         //     //ROS_ERROR_STREAM("size" << keyframes_.size());
         //     ROS_DEBUG_STREAM(keyframes_[i].globalKeyframeID << " " << i  << "empty old descriptor");
@@ -122,6 +125,9 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             }
             int inlier = ransac_featureMatching(frame,candidate_frame);
             eliminateOutliersPnP(frame,candidate_frame,pose);
+            //eliminateOutliersFundamental(frame,candidate_frame);
+            //ransac_matches = good_matches;
+            //eliminateOutliersFundamental(frame,candidate_frame);
             inlier = ransac_matches.size();
             //int inlier = 100;
             if (inlier > inlier_){
@@ -148,7 +154,38 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     return loop_detected;
 }
 
-
+void LoopClosingTool::eliminateOutliersFundamental(Keyframe& current,Keyframe& candidate){
+    // vector<uchar> status;
+    // vector<cv::Point2f> lastPoints;
+    // vector<cv::Point2f> currentPoints;
+    // for (auto kp: good_lastKeypoints){
+    //     lastPoints.push_back(kp.pt);
+    // }
+    // for (auto kp: goodKeypoints){
+    //     currentPoints.push_back(kp.pt);
+    // }
+    // ransac_matches.clear();
+    // cv::findFundamentalMat(lastPoints, currentPoints, cv::FM_RANSAC, 3.0, 0.99, status);
+    // for (int i = 0; i < lastPoints.size(); i++) {
+    //     if (status[i]) {
+    //         ransac_matches.push_back(good_matches[i]);
+    //         ransac_matches_id_map.insert({good_matches[i].trainIdx, good_matches[i].queryIdx});
+    //     }
+    // }
+    cv::Mat imMatches;
+    cv::drawMatches(candidate.img, candidate.keypoints, current.img, current.keypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+            //cv::imshow("matches_window", imMatches);
+            cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
+            cv::imshow("image", imMatches);
+            //if(ransac_matches.size() > 2){
+                 cv::imwrite("/home/bigby/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+            //}
+            //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+            //cv::imshow("matches_window", imMatches);
+            //cv::waitKey(1);
+            cv::waitKey(1);
+            ROS_DEBUG_STREAM("Total match " << ransac_matches.size() );
+}
 
 int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidate){
     //clear previous matches 
@@ -167,7 +204,7 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidat
     //create a matcher (Flann ) 
     // matcher.match( cur_descr, candidate_descr, matches );
     //mathcer brute force
-    cv::BFMatcher matcher( cv::NORM_L2,true);
+    cv::BFMatcher matcher( cv::NORM_HAMMING,true);
     std::vector<cv::DMatch> matches;
     matcher.match( candidate_descr,cur_descr, matches );
     cv::Mat match_img;
@@ -176,35 +213,49 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidat
     //if a distance is bigger then 2*min distance, we assume is false
     //to avoid extrme small mindistance we use 30 
     std::vector<cv::DMatch> normalMatches;
-    normalMatches = matches;
-    std::vector<cv::Point2f> curKps, candKps;
-        for (int i = 0; i < normalMatches.size(); i++) {
-            candKps.push_back( candidate_keypoints[normalMatches[i].trainIdx].pt);
-            curKps.push_back(cur_keypoints[normalMatches[i].queryIdx].pt);
+    // find the largest and smallest feature distances
+    double min_dist = 10000, max_dist = 0;
+    for (int i = 0; i < matches.size(); i++) {
+        double dist = matches[i].distance;
+        if (dist < min_dist) min_dist = dist;
+        if (dist > max_dist) max_dist = dist;
     }
+
+    for (int i = 0; i < matches.size(); i++) {
+        if (matches[i].distance <= 2* max(min_dist,5.0)) {
+            normalMatches.push_back(matches[i]);
+        }
+    }
+
+
+    // std::vector<cv::Point2f> curKps, candKps;
+    //     for (int i = 0; i < normalMatches.size(); i++) {
+    //         candKps.push_back( candidate_keypoints[normalMatches[i].trainIdx].pt);
+    //         curKps.push_back(cur_keypoints[normalMatches[i].queryIdx].pt);
+    // }
   
     // // Use ransac to further remove outlier
-    // cv::Mat H;
-    // H = cv::findHomography(cv::Mat(curKps),cv::Mat(candKps),cv::RANSAC,parameter.RansacThresh2d);
+    // cv::Mat H;  // cv::Mat H;
+    // H = cv::findHomography(cv::Mat(curKps),cv::Mat(candKps),cv::RANSAC,5);
     // //check if H is empty
     // if(H.empty()){return 0;}
     // cv::Mat curTransformed;
     // cv::perspectiveTransform(cv::Mat(curKps),curTransformed,H);
     // // save inlier
     // for (int i =0; i < normalMatches.size(); i ++){
-    //     if (cv::norm(candKps[i] - curTransformed.at<cv::Point2f>((int)i,0)) <= parameter.RansacThresh2d){
+    //     if (cv::norm(candKps[i] - curTransformed.at<cv::Point2f>((int)i,0)) <= 5){
     //         good_matches.push_back(normalMatches[i]);
     //     }
     // }
-    good_matches.clear();
-    good_matches = matches;
-    auto candidate_3dpoints = candidate.point_3d;
-    for (int i = 0; i < good_matches.size(); i++) {
-            goodKeypoints.push_back(cur_keypoints[good_matches[i].trainIdx]);
-            good_lastKeypoints.push_back(candidate_keypoints[good_matches[i].queryIdx]);
-            good_lastpoint3d.push_back(candidate_3dpoints[good_matches[i].queryIdx]);
-    }
-
+ 
+    // good_matches = matches;
+    // auto candidate_3dpoints = candidate.point_3d;
+    // for (int i = 0; i < good_matches.size(); i++) {
+    //         goodKeypoints.push_back(cur_keypoints[good_matches[i].trainIdx]);
+    //         good_lastKeypoints.push_back(candidate_keypoints[good_matches[i].queryIdx]);
+    //         good_lastpoint3d.push_back(candidate_3dpoints[good_matches[i].queryIdx]);
+    // }
+    good_matches = normalMatches;
     return good_matches.size();
 }
 void LoopClosingTool::create_feature(){
@@ -249,7 +300,7 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
     }
     switch (featureType_) {
     case 0:
-           detector = cv::ORB::create();
+           detector = cv::ORB::create(1000, 1.2,4);
            break;
     case 1:
     #ifdef COMPILE_WITH_SURF
@@ -268,12 +319,8 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
             detector = cv::AKAZE::create();
             break;
         }
-    if (featureType_ == 0){
-        auto descriptor = cv::xfeatures2d::BEBLID::create(1.0);
-        descriptor->compute(currentImage,Keypoints, currentDescriptors);
-    }else{
-        detector->compute(currentImage, Keypoints,currentDescriptors);
-    }
+    detector->compute(currentImage, Keypoints,currentDescriptors);
+    
     
 }
 void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
@@ -368,7 +415,7 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
         // }
         cv::solvePnPRansac(candidate_3d,
                            point_2d,
-                           camera_mat,
+                           camera_->K_cv(),
                            distort,
                            ransacRVectorGuess,
                            ransacTGuess,

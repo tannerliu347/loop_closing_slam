@@ -20,6 +20,9 @@
 #include <queue>
 #include "ros/ros.h"
 #include <sophus/se3.hpp>
+#include <memory>
+#include "camera.h"
+#include "config.h"
 // class keyframe{
 
 // };
@@ -54,11 +57,12 @@ struct parameters{
 class LoopClosingTool{
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    LoopClosingTool(fbow::Vocabulary* pDB);
+    LoopClosingTool(fbow::Vocabulary* pDB,shared_ptr<Camera> camera,shared_ptr<Config> config);
    // bool detect_loop_test(const cv::Mat& img);
     bool detect_loop(vector<Matchdata>& point_matches,std::unordered_map<int, inekf_msgs::State>& states);
     bool find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match,std::unordered_map<int, inekf_msgs::State>& states);
     // remove wrong pair with ransac
+    void eliminateOutliersFundamental(Keyframe& current,Keyframe& candidate);
     int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
     //create feature
     void create_feature();
@@ -156,5 +160,10 @@ private:
     int id = 0;
     int lastLoopClosure_;
     int max_loopClosureId;
+
+    //camera 
+    shared_ptr<Camera> camera_;
+
+    shared_ptr<Config> config_;
    //std::vector<KeyFrame> histKFs_
 };

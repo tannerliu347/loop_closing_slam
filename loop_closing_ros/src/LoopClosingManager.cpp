@@ -13,13 +13,14 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
         ROS_ERROR_STREAM("ERROR: Camera not initialized");
         return;
     }
+    
     current_state = (*stateMsg);
     loopDetector->states[msg->frameID] = (*stateMsg);
     
     //current pose
     Eigen::Vector3f    positionVector(stateMsg->position.x, stateMsg->position.y, stateMsg->position.z);
     Eigen::Quaternionf poseOrientation(stateMsg->orientation.w, stateMsg->orientation.x, stateMsg->orientation.y, stateMsg->orientation.z);
-
+    
 
     cv_bridge::CvImagePtr color_ptr;
     cv_bridge::CvImagePtr depth_ptr;
@@ -67,6 +68,7 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     vector<Matchdata> point_matches;
     bool loopdetected = loopDetector->detect_loop(point_matches);
     //cv::imwrite("image"+std::to_string(keyframes.size())+".jpg",color );
+   
     if (loopdetected){
         //update globalId
         drawLine(point_matches[point_matches.size() -1].oldId_);

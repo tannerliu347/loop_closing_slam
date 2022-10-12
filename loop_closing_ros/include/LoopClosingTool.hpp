@@ -79,6 +79,7 @@ public:
         landmarks_->update(globalID,point_3d,inView);
         current_globalIDs = globalID;
     }
+    void eliminateOutliersFundamental(Keyframe& current,Keyframe& candidate);
     void eliminateOutliersPnP(Keyframe& current,Keyframe& candidate, RelativePose& pose);
     bool NormlocalFrameLandmakrPos(int globalId,int frameID,cv::Point3f& result);
     void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
@@ -108,6 +109,7 @@ public:
         minScoreAccept_ = minScoreAccept;
     }
     void setVocabularyfile(string path){
+        ROS_DEBUG_STREAM("vocab path = " << path);
         pDB_->readFromFile(path);
     }
    std::unordered_map<int, inekf_msgs::State> states;
@@ -115,8 +117,8 @@ public:
 private:
     fbow::Vocabulary* pDB_;
     Eigen::MatrixXd* loopClosureMatch_;
-    std::vector<Keyframe> keyframes_; //store keyframe class
-    shared_ptr<Landmarks> landmarks_;
+    std::unordered_map<int,Keyframe> keyframes_; //store keyframe class
+    shared_ptr<Landmark_Manager> landmarks_;
     //current matches and feature point
     vector<cv::DMatch> good_matches;
         

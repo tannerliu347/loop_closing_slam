@@ -4,7 +4,7 @@
 LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB):pDB_(pDB){   
         lastLoopClosure_ = -1;
         currentGlobalKeyframeId = 0;
-        landmarks_.reset(new Landmarks());
+        landmarks_.reset(new Landmark_Manager());
     }
 
 bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches){
@@ -12,6 +12,7 @@ bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches){
     if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < skip_frame_ ){
         return false;
     }
+    ROS_DEBUG_STREAM("Start Detect loop");
     //first add new key frame in 
     descriptors.push_back(currentDescriptors);
     goodKeypoints = currentKeypoints;
@@ -20,7 +21,7 @@ bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches){
     //find match of current frame
     int candidate_id;
     Matchdata point_match;
-    bool loop_detected = find_connection(keyframes_.back(),candidate_id,point_match,states);
+    bool loop_detected = find_connection(keyframes_[currentGlobalKeyframeId],candidate_id,point_match,states);
     if(loop_detected){
         point_matches.push_back(point_match);
     }
@@ -43,7 +44,8 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     bool loop_detected = false;
     for (int i = 0; i < (int(frame.globalKeyframeID) - int(near_frame_)); i ++ ){
         fbow::fBow bowvector_cur;
-        if(keyframes_[i].descriptors.empty()){
+        if (keyframes_[i].globalKeyframeID == -1) continue;
+        if(keyframes_[i].descriptors.empty() ){
             //ROS_ERROR_STREAM("size" << keyframes_.size());
             ROS_DEBUG_STREAM(keyframes_[i].globalKeyframeID << " " << i  << "empty old descriptor");
             continue;
@@ -53,6 +55,19 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         bowvector_old = pDB_->transform(keyframes_[i].descriptors);
         double score = fbow::fBow::score(bowvector_cur,bowvector_old);
         pq.push( std::make_pair (i, score));
+    }
+    double prevScore = 1;
+    if(keyframes_.count(frame.globalKeyframeID -1)!= 0){
+        if (keyframes_[frame.globalKeyframeID -1].descriptors.empty()){
+            ROS_DEBUG_STREAM(frame.globalKeyframeID -1  << "empty prev descriptor");
+            prevScore = minimum_score;
+        }else{
+            fbow::fBow bowvector_prev = pDB_->transform(keyframes_[frame.globalKeyframeID -1].descriptors);
+            fbow::fBow bowvector_cur = pDB_->transform(cur_desc);
+            prevScore = fbow::fBow::score(bowvector_cur,bowvector_prev);
+        }
+        ROS_DEBUG_STREAM("prevScore is "<< prevScore);
+      
     }
     // simple logic check to filter out unwanted
     if (pq.empty()) {
@@ -74,7 +89,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         //     // if (abs(int(r.Id) - int(rets[i-1].Id)) < 3 ){
         //     //     continue;
         //     // }
-            if (candidate_score < minScoreAccept_) {
+            if (candidate_score < prevScore) {
         // pDB_->addImg(img)
         // return false;
             continue;
@@ -82,6 +97,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             if (keyframes_[candidate_id].descriptors.empty()){
                 continue;
             }
+            ROS_DEBUG_STREAM("Candidate found");
             //calculate relative pose
             // auto current_state = current_state;
             if (states.find(candidate_id) == states.end()){
@@ -104,7 +120,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             RelativePose pose( relativePose.translation(),relativePose.rotationMatrix());
             int inlier = ransac_featureMatching(frame,keyframes_[candidate_id]);
             eliminateOutliersPnP(frame,keyframes_[candidate_id],pose);
-            searchByProjection(frame,keyframes_[candidate_id]);
+            // searchByProjection(frame,keyframes_[candidate_id]);
             inlier = ransac_matches.size();
             //int inlier = 100;
             if (inlier > inlier_){
@@ -132,7 +148,39 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
 }
 
 
-
+// void FeatureTracker::eliminateOutliersFundamental(Keyframe& current,Keyframe& candidate) {
+//     vector<cv::Point3f> lastPoints;
+//     vector<cv::Point3f> currentPoints;
+//     for (auto kpL: )
+//     vector<uchar> status;
+//     cv::findFundamentalMat(lastPoints, currentPoints, cv::FM_RANSAC, 3.0, 0.99, status);
+//     std::vector<cv::DMatch> matches_;
+//     int                     matchSize = 0;
+//     matches_id_map.clear();
+//     for (int i = 0; i < lastPoints.size(); i++) {
+//         if (status[i]) {
+//             int currentFeatureId = matches[i].trainIdx;
+//             int lastFeatureId    = matches[i].queryIdx;
+//             // cout << "ransac[" << matchSize << "] " << lastFeatureId << "->" << currentFeatureId << ", uv: " << currentPoints[i].x << ", " <<
+//             // currentPoints[i].y
+//             //      << endl;
+//             if (currentPoints[i].x < 0 || currentPoints[i].y < 0 || currentPoints[i].x >= currentImage.cols || currentPoints[i].y >= currentImage.rows) {
+//                 ROS_DEBUG_STREAM("Current point is out of the image region.");
+//             } else if (matches_id_map.count(currentFeatureId) > 0) {
+//                 ROS_DEBUG_STREAM("Current point is matched to multiple last points.");
+//             } else {
+//                 matchSize++;
+//                 matches_.push_back(matches[i]);
+//                 matches_id_map.insert({currentFeatureId, lastFeatureId});
+//             }
+//         }
+//     }
+//     matches = matches_;
+//     cout << "eliminateOutliersFundamental::matches=" << matches.size() << endl;
+//     // for (auto &match : matches) {
+//     //     cout << match.queryIdx << "->" << match.trainIdx << endl;
+//     // }
+// }
 int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidate){
     //clear previous matches 
     good_matches.clear();
@@ -183,7 +231,10 @@ int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidat
     // }
     good_matches.clear();
     good_matches = matches;
-    auto candidate_3dpoints = candidate.get3dPoint();
+    vector<cv::Point3f> candidate_3dpoints; 
+    
+    candidate_3dpoints = landmarks_->get3dPoint(current_globalIDs);
+    
     for (int i = 0; i < good_matches.size(); i++) {
             goodKeypoints.push_back(cur_keypoints[good_matches[i].trainIdx]);
             good_lastKeypoints.push_back(candidate_keypoints[good_matches[i].queryIdx]);
@@ -227,7 +278,6 @@ void LoopClosingTool::create_feature(){
 void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
     currentKeypoints.clear();
     currentDescriptors.release();
-    currentKeypoints = Keypoints;
     cv::Ptr<cv::FeatureDetector> detector;
     if(Keypoints.empty()){
         cout <<"keypoint is empty" << endl;
@@ -276,10 +326,14 @@ void LoopClosingTool::generateKeyframe(){
             ROS_ERROR_STREAM("empty current descriptor");
             exit(1);
     }   
-   
-    Keyframe kf(currentGlobalKeyframeId,currentImage,currentDepth,currentKeypoints,currentDescriptors,landmarks_);
+    // vector<shared_ptr<Landmark>> observed_landmark;
+    // for (auto id : currentGlobalKeyframeId){
+    //     observed_landmark.push_back(landmarks_[]);
+    // }
+
+    Keyframe kf(currentGlobalKeyframeId,currentImage,currentDepth,currentKeypoints,currentDescriptors);
     kf.insertGlobalID(current_globalIDs);
-    keyframes_.push_back(kf);
+    keyframes_[currentGlobalKeyframeId] = kf;
     
     goodKeypoints.clear();
     currentKeypoints.clear();
@@ -403,7 +457,7 @@ Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& current, Keyframe& cand
     return point_match;
 }
 bool LoopClosingTool::NormlocalFrameLandmakrPos(int globalId,int frameID,cv::Point3f& result){
-    auto ptGlobal = landmarks_->points3d[globalId]->getGlobalPos();
+    auto ptGlobal = landmarks_->landmarks[globalId]->getGlobalPos();
     auto CurrentState =  states[frameID];
     Eigen::Vector3f    positionVector(CurrentState.position.x, CurrentState.position.y, CurrentState.position.z);
     Eigen::Quaternionf poseOrientation(CurrentState.orientation.w, CurrentState.orientation.x, CurrentState.orientation.y, CurrentState.orientation.z);
@@ -468,7 +522,7 @@ void LoopClosingTool::searchByProjection(Keyframe& current,Keyframe& candidate){
                 
                 
                             }
-            float distance = norm(landmarks_->getDescriptor(id),current.descriptors.row(j),cv::NORM_L2);
+            float distance = norm(landmarks_->getDescriptor(id),current.descriptors.row(j),cv::NORM_HAMMING);
             ROS_DEBUG_STREAM("landmark distance " << distance);
             //distance = sqrt(distance);
             if (distance < minDistance){

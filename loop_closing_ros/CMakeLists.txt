@@ -19,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   message_filters
   dynamic_reconfigure
+  pcl_conversions
+  pcl_ros 
 )
 generate_dynamic_reconfigure_options(
   cfg/Loopclosing.cfg

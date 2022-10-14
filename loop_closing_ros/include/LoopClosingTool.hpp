@@ -24,6 +24,7 @@
 #include "camera.h"
 #include "config.h"
 #include "landmark_manager.h"
+
 // class keyframe{
 
 // };
@@ -119,6 +120,7 @@ public:
     }
     shared_ptr<LandmarkManager> landmark_manager;
     unordered_map<int,int> processedID;
+    vector<pair<shared_ptr<Landmark>,int>> loopClosurePoint;
 private:
     fbow::Vocabulary* pDB_;
     float minScoreAccept_; // Disregard ones lower than this
@@ -128,7 +130,7 @@ private:
 
     //current matches and feature point
     vector<cv::DMatch> good_matches;
-        
+    
     //for ransac outlier elimination
     cv::Mat camera_mat, distort;
     vector<cv::DMatch> ransac_matches;

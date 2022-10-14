@@ -3,7 +3,8 @@ void LoopClosingManager::setCore(ros::NodeHandle* nh, LoopClosingTool* ltr){
     nh = nh;
     loopDetector = ltr;
     closingLine_pub = nh->advertise<visualization_msgs::Marker>("loop_closing_line", 10);
-    test_point_pub = nh->advertise<visualization_msgs::Marker>("loop_closing_point", 10);
+    test_point_pub = nh->advertise<visualization_msgs::Marker>("loop_closing_pose", 10);
+    lc_pointcloud_pub = nh->advertise<visualization_msgs::MarkerArray>("loop_closing_point", 10);
     //keyframe_pub = nh->advertise<frontend::Keyframe>("loop_closing/keyframe", 10);
     match_pub = nh->advertise<frontend::Match>("loop_closing/match", 10);
     frameCount = 0;
@@ -118,7 +119,7 @@ void LoopClosingManager::publishMatch(Matchdata& point_match){
     estimate_pose.position.x = t.x();
     estimate_pose.position.y = t.y();
     estimate_pose.position.z = t.z();
-    currentPose_estimate = camera->CameraTrajectoryToImu(currentPose_estimate);
+    // currentPose_estimate = camera->CameraTrajectoryToImu(currentPose_estimate);
     drawPoint(currentPose_estimate);
     match_msg.betweenPose = estimate_pose;
     // auto current_state =  states[match_msg.curId];
@@ -207,6 +208,7 @@ void LoopClosingManager::drawLine(const vector<int>& matchingIndex){
     }
 }
 void LoopClosingManager::drawPoint(const Sophus::SE3f pose){
+    //publish pose
     auto t = pose.translation();
     auto q = pose.unit_quaternion().coeffs();
     ROS_DEBUG_STREAM("Publish relative pose marker");
@@ -232,5 +234,46 @@ void LoopClosingManager::drawPoint(const Sophus::SE3f pose){
     test_point.type = visualization_msgs::Marker::ARROW;
   
     test_point_pub.publish(test_point);
-    
+
+    visualization_msgs::MarkerArray inViewPointArray;
+    int id = 1;
+    //publish point 
+    for (auto pair:loopDetector->loopClosurePoint){
+        int status = pair.second;
+        auto landmark = pair.first;
+        visualization_msgs::Marker newPoint;
+        newPoint.header.frame_id = "odom";
+        newPoint.header.stamp = ros::Time::now();
+        newPoint.ns =  "Inview_point";
+        newPoint.action = visualization_msgs::Marker::ADD;
+        newPoint.pose.orientation.w = q.w();
+        newPoint.pose.orientation.x = q.x();
+        newPoint.pose.orientation.y = q.y();
+        newPoint.pose.orientation.z = q.z();
+        newPoint.pose.position.x = landmark->pointGlobal[0];
+        newPoint.pose.position.y= landmark->pointGlobal[1];
+        newPoint.pose.position.z = landmark->pointGlobal[2];
+        newPoint.id = id++;
+           if (status == 2){
+                newPoint.color.b = 0.5;
+                newPoint.color.g = 0.0;
+                newPoint.color.r = 0.0;
+           }else if (status == 3){
+                newPoint.color.b = 0.0;
+                newPoint.color.g = 0.5;
+                newPoint.color.r = 0.0;
+           }
+           else{
+                 newPoint.color.b = 1.0;
+                newPoint.color.g = 0.0;
+                newPoint.color.r = 0.5;
+           }
+        newPoint.color.a = 1.0;
+        newPoint.scale.x = 0.1;
+        newPoint.scale.y = 0.1;
+        newPoint.scale.z = 0.1;
+        newPoint.type = visualization_msgs::Marker::SPHERE;
+        inViewPointArray.markers.push_back(newPoint);
+    }
+    lc_pointcloud_pub.publish(inViewPointArray);
 }

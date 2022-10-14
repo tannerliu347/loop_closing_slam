@@ -18,6 +18,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <loop_closing_ros/LoopclosingConfig.h>
 #include "camera.h"
+#include <visualization_msgs/MarkerArray.h>
 class LoopClosingManager{
 public:
     LoopClosingManager(){markerId = 0;cameraIntialized=false;}
@@ -40,6 +41,7 @@ private:
     ros::Publisher keyframe_pub;
     ros::Publisher match_pub;
     ros::Publisher test_point_pub;
+    ros::Publisher lc_pointcloud_pub;
     std::vector<frontend::Keyframe> keyframes;
     std::unordered_map<int, inekf_msgs::State> states;
     inekf_msgs::State current_state;

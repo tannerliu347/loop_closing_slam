@@ -491,6 +491,7 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
 }
 void LoopClosingTool::pnpCorrespondence(Keyframe& current){
     processedID.clear();
+    loopClosurePoint.clear();
     // traverse current frame glboal Id, prevent thouse got matched again
     for (auto Id: current.globalIDs){
         processedID[Id] = 1;
@@ -531,6 +532,8 @@ void LoopClosingTool::pnpCorrespondence(Keyframe& current){
         point_3d.push_back(eigenTocv(mapPointsInLast)); 
         globalId_index_map[cnt] = ld->landmarkId;
         cnt ++;
+
+        loopClosurePoint.push_back({ld,1});
     }
     cout << "3d descriptors size " << point_3d.size() << endl;
     cout << "2d descriptors size " << unmatched2dPoint.size() << endl;
@@ -604,6 +607,7 @@ void LoopClosingTool::pnpCorrespondence(Keyframe& current){
             distance += pow(projectedPoint.y -  good2dPoint[inliers.at<int>(i, 0)].y,2.0);
             distance = sqrt(distance);
             if (distance < 100 ){
+                loopClosurePoint[mapPointId].second = 2;
                 if (visualizePointMatch(globalId_index_map[mapPointId],good2dPoint[inliers.at<int>(i, 0)],goodProjection[inliers.at<int>(i, 0)])){
                     curKey_globalId_map[keyPoint_index_map[keyPointId]] = globalId_index_map[mapPointId];
                 }
@@ -611,7 +615,9 @@ void LoopClosingTool::pnpCorrespondence(Keyframe& current){
         }
        
     }
-    
+    // for (auto Id: current.globalIDs){
+    //     loopClosurePoint.push_back({landmarks[Id],3});
+    // }
     cout << "pnp inlier count " << inliers.rows << endl;
     cout <<"total keypoints " << currentKeypoints.size() << "total key points matched with last frame " << ransac_matches_id_map.size() << endl;
     cout << "total keypoints matched with other 3d points " << inliers.rows << endl;

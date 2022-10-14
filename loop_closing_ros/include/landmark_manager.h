@@ -22,6 +22,7 @@ struct Landmark {
     int                       inViewCount     = 0;
     Eigen::Vector3f           pointGlobal; 
     vector<int>         observedFrameIds;
+    map<int,cv::KeyPoint>      keypoints;  
     cv::Mat                   descriptor; 
     bool                      optimized;
     bool                      initiated;

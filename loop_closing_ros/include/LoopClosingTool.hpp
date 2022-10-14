@@ -65,7 +65,7 @@ public:
     // remove wrong pair with ransac
     void eliminateOutliersFundamental(Keyframe& current,Keyframe& candidate);
     int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
-    void pnpCorrespondence();
+    void pnpCorrespondence(Keyframe& current);
     bool visualizePointMatch(int landmarkID,cv::Point2f point,cv::Point2f projectedLocation);
     //create feature
     void create_feature();
@@ -171,6 +171,6 @@ private:
     shared_ptr<Config> config_;
 
     std::unordered_map<int, inekf_msgs::State> states;
-   
+    unordered_map<int,int>  curKey_globalId_map;
    //std::vector<KeyFrame> histKFs_
 };

@@ -17,6 +17,7 @@
 #include <sophus/se3.hpp>
 #include <dynamic_reconfigure/server.h>
 #include <loop_closing_ros/LoopclosingConfig.h>
+#include "camera.h"
 class LoopClosingManager{
 public:
     LoopClosingManager(){markerId = 0;cameraIntialized=false;}
@@ -27,10 +28,11 @@ public:
     void publishMatch(Matchdata& point_match);
     void drawLine(int i);
     void drawLine(const vector<int>& matchingIndex);
-    void drawPoint(const geometry_msgs::Pose pose);
+    void drawPoint(const Sophus::SE3f pose);
     int frameCount;
     LoopClosingTool* loopDetector;
     bool cameraIntialized;
+    shared_ptr<Camera> camera;
 private: 
     ros::NodeHandle* nh;
     //ros::Subscriber keyframeSub_;

@@ -97,54 +97,55 @@ void LoopClosingManager::publishMatch(Matchdata& point_match){
     }
     match_msg.measurement = measurement;
 
-    // //test relative pose calculate from pnp, by add this relative pose to old pose
-    // auto old_state = states[match_msg.oldId];
-    // Eigen::Vector3f    position_old(old_state.position.x, old_state.position.y, old_state.position.z);
-    // Eigen::Quaternionf poseOrientation_old(old_state.orientation.w, old_state.orientation.x, old_state.orientation.y, old_state.orientation.z);
-    // Sophus::SE3f oldInekfPose(poseOrientation_old,position_old);
-    // Eigen::Quaternionf poseOrientation_relative(point_match.rp_.rot);
-    // Sophus::SE3f relativePose(poseOrientation_relative,point_match.rp_.pos);
-     
-    
-    // Sophus::SE3f currentPose_estimate =  relativePose * oldInekfPose;
-    // auto t = relativePose.translation();
-    // auto q = relativePose.unit_quaternion().coeffs();
-    // geometry_msgs::Pose estimate_pose;
-    // estimate_pose.orientation.w = q.w();
-    // estimate_pose.orientation.x = q.x();
-    // estimate_pose.orientation.y = q.y();
-    // estimate_pose.orientation.z = q.z();
-
-    // estimate_pose.position.x = t.x();
-    // estimate_pose.position.y = t.y();
-    // estimate_pose.position.z = t.z();
-    // drawPoint(estimate_pose);
-    // match_msg.betweenPose = estimate_pose;
-    auto current_state =  states[match_msg.curId];
+    //test relative pose calculate from pnp, by add this relative pose to old pose
     auto old_state = states[match_msg.oldId];
-    Eigen::Vector3f    position_cur(current_state.position.x, current_state.position.y, current_state.position.z);
-    Eigen::Quaternionf poseOrientation_cur(current_state.orientation.w, current_state.orientation.x, current_state.orientation.y, current_state.orientation.z);
-    Sophus::SE3f currentInekfPose(poseOrientation_cur,position_cur);
-
     Eigen::Vector3f    position_old(old_state.position.x, old_state.position.y, old_state.position.z);
     Eigen::Quaternionf poseOrientation_old(old_state.orientation.w, old_state.orientation.x, old_state.orientation.y, old_state.orientation.z);
     Sophus::SE3f oldInekfPose(poseOrientation_old,position_old);
-
-    Sophus::SE3f relativePose = oldInekfPose.inverse() * currentInekfPose;
+    Eigen::Quaternionf poseOrientation_relative(point_match.rp_.rot);
+    Sophus::SE3f relativePose(poseOrientation_relative,point_match.rp_.pos);
+     
+    
+    Sophus::SE3f currentPose_estimate =  relativePose * oldInekfPose;
     auto t = relativePose.translation();
     auto q = relativePose.unit_quaternion().coeffs();
+    geometry_msgs::Pose estimate_pose;
+    estimate_pose.orientation.w = q.w();
+    estimate_pose.orientation.x = q.x();
+    estimate_pose.orientation.y = q.y();
+    estimate_pose.orientation.z = q.z();
 
-    geometry_msgs::Pose betweenPose;
-    betweenPose.orientation.w = q.w();
-    betweenPose.orientation.x = q.x();
-    betweenPose.orientation.y = q.y();
-    betweenPose.orientation.z = q.z();
+    estimate_pose.position.x = t.x();
+    estimate_pose.position.y = t.y();
+    estimate_pose.position.z = t.z();
+    currentPose_estimate = camera->CameraTrajectoryToImu(currentPose_estimate);
+    drawPoint(currentPose_estimate);
+    match_msg.betweenPose = estimate_pose;
+    // auto current_state =  states[match_msg.curId];
+    // auto old_state = states[match_msg.oldId];
+    // Eigen::Vector3f    position_cur(current_state.position.x, current_state.position.y, current_state.position.z);
+    // Eigen::Quaternionf poseOrientation_cur(current_state.orientation.w, current_state.orientation.x, current_state.orientation.y, current_state.orientation.z);
+    // Sophus::SE3f currentInekfPose(poseOrientation_cur,position_cur);
 
-    betweenPose.position.x = t.x();
-    betweenPose.position.y = t.y();
-    betweenPose.position.z = t.z();
+    // Eigen::Vector3f    position_old(old_state.position.x, old_state.position.y, old_state.position.z);
+    // Eigen::Quaternionf poseOrientation_old(old_state.orientation.w, old_state.orientation.x, old_state.orientation.y, old_state.orientation.z);
+    // Sophus::SE3f oldInekfPose(poseOrientation_old,position_old);
 
-    match_msg.betweenPose = betweenPose;
+    // Sophus::SE3f relativePose = oldInekfPose.inverse() * currentInekfPose;
+    // auto t = relativePose.translation();
+    // auto q = relativePose.unit_quaternion().coeffs();
+
+    // geometry_msgs::Pose betweenPose;
+    // betweenPose.orientation.w = q.w();
+    // betweenPose.orientation.x = q.x();
+    // betweenPose.orientation.y = q.y();
+    // betweenPose.orientation.z = q.z();
+
+    // betweenPose.position.x = t.x();
+    // betweenPose.position.y = t.y();
+    // betweenPose.position.z = t.z();
+
+    // match_msg.betweenPose = betweenPose;
     
     
     match_pub.publish(match_msg);
@@ -205,20 +206,22 @@ void LoopClosingManager::drawLine(const vector<int>& matchingIndex){
         closingLine_pub.publish(line_strip);
     }
 }
-void LoopClosingManager::drawPoint(const geometry_msgs::Pose pose){
+void LoopClosingManager::drawPoint(const Sophus::SE3f pose){
+    auto t = pose.translation();
+    auto q = pose.unit_quaternion().coeffs();
     ROS_DEBUG_STREAM("Publish relative pose marker");
     visualization_msgs::Marker test_point;
     test_point.header.frame_id = "odom";
     test_point.header.stamp = ros::Time::now();
     test_point.ns =  "points";
     test_point.action = visualization_msgs::Marker::ADD;
-    test_point.pose.orientation.w = pose.orientation.w;
-    test_point.pose.orientation.x = pose.orientation.x;
-    test_point.pose.orientation.y = pose.orientation.y;
-    test_point.pose.orientation.z = pose.orientation.z;
-    test_point.pose.position.x = pose.position.x;
-    test_point.pose.position.y= pose.position.y;
-    test_point.pose.position.z = pose.position.z;
+    test_point.pose.orientation.w = q.w();
+    test_point.pose.orientation.x = q.x();
+    test_point.pose.orientation.y = q.y();
+    test_point.pose.orientation.z = q.z();
+    test_point.pose.position.x = t.x();
+    test_point.pose.position.y= t.y();
+    test_point.pose.position.z = t.z();
     test_point.id = 0;
     test_point.color.b = 1.0;
     test_point.color.r = 0.0;

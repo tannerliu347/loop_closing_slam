@@ -23,7 +23,7 @@ void LandmarkManager::addKeyframe(Keyframe& keyframe) {
         //update descriptor
         landmark->updateDescriptor(keyframe.descriptors.row(i));
         landmark-> initiated = true;
-        
+        landmark->keypoints[keyframe.globalKeyframeID] = keyframe.keypoints[i];
 
     }
 }

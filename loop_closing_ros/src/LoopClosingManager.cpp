@@ -61,6 +61,11 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     //loopDetector->create_feature();
     // loopDetector->set2DfeaturePosition(feature_2d);  
     loopDetector->set3DfeaturePosition(feature_3d);
+    vector<int> connections;
+    for (auto id:msg->connection){
+        connections.push_back(id);
+    }
+    loopDetector->setConnectedFrame(connections);
     //loopDetector->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
     vector<Matchdata> point_matches;
     bool loopdetected = loopDetector->detect_loop(point_matches,current_state);
@@ -255,18 +260,26 @@ void LoopClosingManager::drawPoint(const Sophus::SE3f pose){
         newPoint.pose.position.z = landmark->pointGlobal[2];
         newPoint.id = id++;
            if (status == 2){
+                // blue for matched point 
                 newPoint.color.b = 0.5;
                 newPoint.color.g = 0.0;
                 newPoint.color.r = 0.0;
            }else if (status == 3){
+                // green for point observed by current frame
                 newPoint.color.b = 0.0;
                 newPoint.color.g = 0.5;
                 newPoint.color.r = 0.0;
+           }else if (status == 4){
+                // yellow for point observed by candidate frame
+                newPoint.color.b = 0/255;
+                newPoint.color.g = 255/255;
+                newPoint.color.r = 255/255;
            }
            else{
-                 newPoint.color.b = 1.0;
+                //  red for inview point
+                newPoint.color.b = 127/255;
                 newPoint.color.g = 0.0;
-                newPoint.color.r = 0.5;
+                newPoint.color.r = 255/255;
            }
         newPoint.color.a = 1.0;
         newPoint.scale.x = 0.1;

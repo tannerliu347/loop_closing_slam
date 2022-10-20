@@ -5,18 +5,20 @@
 #include <string>
 #include "opencv2/calib3d/calib3d.hpp"
 #include <iostream>
+#include <set>
 using namespace std;
 
 class Keyframe {
   public:
     cv::Mat              img;
     cv::Mat              depth;
-    int32_t              featureNum;
-    int32_t              globalKeyframeID;
+    int                  featureNum;
+    int                  globalKeyframeID;
     vector<cv::KeyPoint> keypoints;
     cv::Mat              descriptors;
-    vector<int32_t>      globalIDs;
+    vector<int>          globalIDs;
     vector<cv::Point3f>  point_3d;
+    std::set<int>             connectedFrame;
 
     // Keyframe(int16_t f_id, const cv::Mat kf, const cv::Mat dpt, const vector<cv::KeyPoint> &key_points, const cv::Mat dess)
     //     : frameID(f_id)

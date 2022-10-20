@@ -131,7 +131,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             }
             int inlier = ransac_featureMatching(frame,candidate_frame);
             //eliminateOutliersPnP(frame,candidate_frame,pose);
-            pnpCorrespondence(frame);
+            pnpCorrespondence(frame,candidate_frame);
             eliminateOutliersFundamental(frame,candidate_frame);
             //ransac_matches = good_matches;
             //eliminateOutliersFundamental(frame,candidate_frame);
@@ -369,7 +369,11 @@ void LoopClosingTool::generateKeyframe(){
     }else{
         ROS_ERROR_STREAM("Redundant keyframe detected ");
     }
-    
+    for (int connectedID : connections){
+        if (connectedID < currentGlobalKeyframeId)
+            keyframes_[currentGlobalKeyframeId].connectedFrame.insert(connectedID);
+            keyframes_[connectedID].connectedFrame.insert(currentGlobalKeyframeId);
+    }
     goodKeypoints.clear();
     currentKeypoints.clear();
     
@@ -489,7 +493,7 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
 
    
 }
-void LoopClosingTool::pnpCorrespondence(Keyframe& current){
+void LoopClosingTool::pnpCorrespondence(Keyframe& current,Keyframe& candidate){
     processedID.clear();
     loopClosurePoint.clear();
     // traverse current frame glboal Id, prevent thouse got matched again
@@ -517,8 +521,17 @@ void LoopClosingTool::pnpCorrespondence(Keyframe& current){
    
     //get pose for current frame 
     vector<cv::Point2f> ProjectedLocations;
-    //lastInekfPose
-    auto landmarks = landmark_manager->getVisibleMapPoint(currentGlobalKeyframeId,stateTose3(states[currentGlobalKeyframeId]),processedID,ProjectedLocations);
+    
+    set<int> InviewLandmarkIds;
+    set<int> visited;
+    getInviewPoint(InviewLandmarkIds,visited,1,currentGlobalKeyframeId);
+    vector<shared_ptr<Landmark>> landmarks;
+    ROS_DEBUG_STREAM(" Total inview Id " << InviewLandmarkIds.size());
+    for (auto id : InviewLandmarkIds){
+        if (landmark_manager->landmarks.count(id) != 0)
+            landmarks.push_back(landmark_manager->landmarks[id]);
+    }
+    //auto landmarks = landmark_manager->getVisibleMapPoint(currentGlobalKeyframeId,stateTose3(states[currentGlobalKeyframeId]),processedID,ProjectedLocations);
     ROS_DEBUG_STREAM(" Total inview Point size " << landmarks.size());
     if (landmarks.size() ==0) return;
     //get descriptor
@@ -528,8 +541,8 @@ void LoopClosingTool::pnpCorrespondence(Keyframe& current){
     cnt = 0;
     for (auto ld:landmarks){
         ThreeDdescriptors.push_back(ld->descriptor);
-        auto mapPointsInLast = camera_->world2camera(ld->pointGlobal,stateTose3(states[currentGlobalKeyframeId]));
-        point_3d.push_back(eigenTocv(mapPointsInLast)); 
+        // auto mapPointsInLast = camera_->world2camera(ld->pointGlobal,stateTose3(states[currentGlobalKeyframeId]));
+        point_3d.push_back(eigenTocv(ld->pointGlobal)); 
         globalId_index_map[cnt] = ld->landmarkId;
         cnt ++;
 
@@ -545,10 +558,10 @@ void LoopClosingTool::pnpCorrespondence(Keyframe& current){
     }
     // bf match
     vector<cv::DMatch> matches;
-    cv::BFMatcher      matcher(cv::NORM_HAMMING, false);
+    cv::BFMatcher      matcher(cv::NORM_HAMMING, true);
     matcher.match(ThreeDdescriptors, unmatched2dDescriptors, matches);
     if (matches.size() == 0) return;
-
+    
      // find the largest and smallest feature distances
     double min_dist = 100000, max_dist = 0;
     for (int i = 0; i < matches.size(); i++) {
@@ -560,20 +573,21 @@ void LoopClosingTool::pnpCorrespondence(Keyframe& current){
     vector<cv::Point2f>        good2dPoint;
     vector<cv::Point2f>        goodProjection;
     vector<cv::Point3f>        good3dPoint;
-    cout << min_dist << endl;
+    cout << "bf match size " << matches.size() << endl;
     for (int i = 0; i < matches.size(); i++) {
         if (  matches[i].distance <= 4 * min_dist ) {
             pass_match.push_back(matches[i]);
             good2dPoint.push_back(unmatched2dPoint[matches[i].trainIdx]);
             good3dPoint.push_back(point_3d[matches[i].queryIdx]);
-            goodProjection.push_back(ProjectedLocations[matches[i].queryIdx]);
+            // goodProjection.push_back(ProjectedLocations[matches[i].queryIdx]);
 
         }
     }
-    cout << "bf match size " << matches.size() << endl;
+   
     if (good3dPoint.size() < 4){
         return;
     }
+    cout << "-------------------" << endl;
     cv::Mat inliers, ransacRVectorGuess;
     // /Rodrigues(ransacRGuess, ransacRVectorGuess);
     cv::Mat T;
@@ -591,38 +605,59 @@ void LoopClosingTool::pnpCorrespondence(Keyframe& current){
                             cv::SOLVEPNP_P3P);
     curKey_globalId_map.clear();
     // another map to avoid one to many match
-    for (size_t i = 0; i < inliers.rows; ++i) {
-        int mapPointId    = pass_match[inliers.at<int>(i, 0)].queryIdx;
-        int keyPointId    = pass_match[inliers.at<int>(i, 0)].trainIdx;
-        // cout << "distance " << pass_match[inliers.at<int>(i, 0)].distance << endl;
-        if (keyPoint_index_map.count(keyPointId) == 0){
-            ROS_ERROR_STREAM("keypoint map does not find");
-        }
-         if (globalId_index_map.count(mapPointId) == 0){
-            ROS_ERROR_STREAM("globalId map does not find");
-        }
-        if (curKey_globalId_map.count(keyPoint_index_map[keyPointId]) == 0)  {
-            auto projectedPoint = goodProjection[inliers.at<int>(i, 0)];
-            float distance = pow(projectedPoint.x -  good2dPoint[inliers.at<int>(i, 0)].x,2.0);
-            distance += pow(projectedPoint.y -  good2dPoint[inliers.at<int>(i, 0)].y,2.0);
-            distance = sqrt(distance);
-            if (distance < 100 ){
-                loopClosurePoint[mapPointId].second = 2;
-                if (visualizePointMatch(globalId_index_map[mapPointId],good2dPoint[inliers.at<int>(i, 0)],goodProjection[inliers.at<int>(i, 0)])){
-                    curKey_globalId_map[keyPoint_index_map[keyPointId]] = globalId_index_map[mapPointId];
-                }
-            }
-        }
+    // for (size_t i = 0; i < inliers.rows; ++i) {
+    //     int mapPointId    = pass_match[inliers.at<int>(i, 0)].queryIdx;
+    //     int keyPointId    = pass_match[inliers.at<int>(i, 0)].trainIdx;
+    //     // cout << "distance " << pass_match[inliers.at<int>(i, 0)].distance << endl;
+    //     if (keyPoint_index_map.count(keyPointId) == 0){
+    //         ROS_ERROR_STREAM("keypoint map does not find");
+    //     }
+    //      if (globalId_index_map.count(mapPointId) == 0){
+    //         ROS_ERROR_STREAM("globalId map does not find");
+    //     }
+    //     if (curKey_globalId_map.count(keyPoint_index_map[keyPointId]) == 0)  {
+    //         // auto projectedPoint = goodProjection[inliers.at<int>(i, 0)];
+    //         // float distance = pow(projectedPoint.x -  good2dPoint[inliers.at<int>(i, 0)].x,2.0);
+    //         // distance += pow(projectedPoint.y -  good2dPoint[inliers.at<int>(i, 0)].y,2.0);
+    //         // distance = sqrt(distance);
+    //         double distance = 0;
+    //         if (distance < 100 ){
+    //             loopClosurePoint[mapPointId].second = 2;
+    //             if (visualizePointMatch(globalId_index_map[mapPointId],good2dPoint[inliers.at<int>(i, 0)],goodProjection[inliers.at<int>(i, 0)])){
+    //                 curKey_globalId_map[keyPoint_index_map[keyPointId]] = globalId_index_map[mapPointId];
+    //             }
+    //         }
+    //     }
        
-    }
-    // for (auto Id: current.globalIDs){
-    //     loopClosurePoint.push_back({landmarks[Id],3});
     // }
+    for (auto Id: current.globalIDs){
+        loopClosurePoint.push_back({landmark_manager->landmarks[Id],3});
+    }
+      for (auto Id: candidate.globalIDs){
+        loopClosurePoint.push_back({landmark_manager->landmarks[Id],4});
+    }
     cout << "pnp inlier count " << inliers.rows << endl;
     cout <<"total keypoints " << currentKeypoints.size() << "total key points matched with last frame " << ransac_matches_id_map.size() << endl;
     cout << "total keypoints matched with other 3d points " << inliers.rows << endl;
     
 
+}
+void LoopClosingTool::getInviewPoint(set<int>& inViewLandmark,set<int>& visited,int level,int startFrame){
+    if (level == 0){
+        return;
+    }
+    for (auto connectedFrame:keyframes_[startFrame].connectedFrame){
+        if (visited.count(connectedFrame) != 0){
+            continue;
+        }
+        visited.insert(connectedFrame);
+        getInviewPoint(inViewLandmark,visited,level-1,connectedFrame);
+        for (int Id : keyframes_[connectedFrame].globalIDs){
+            if (processedID.count(Id) == 0){
+                inViewLandmark.insert(Id);
+            }
+        }
+    }
 }
 bool LoopClosingTool::visualizePointMatch(int landmarkID,cv::Point2f point,cv::Point2f projectedLocation){
     //get Landmark 
@@ -655,6 +690,10 @@ bool LoopClosingTool::visualizePointMatch(int landmarkID,cv::Point2f point,cv::P
    
 
 
+}
+void LoopClosingTool::setConnectedFrame(vector<int>& connectedFrames){
+    connections.clear();
+    connections = connectedFrames;
 }
 Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& current, Keyframe& candidate,vector<cv::DMatch>& returned_matches,RelativePose& pose){
     std::vector<int> candidate_globalId = candidate.globalIDs;

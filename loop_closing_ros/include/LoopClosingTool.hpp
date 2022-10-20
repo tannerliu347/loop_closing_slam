@@ -66,7 +66,7 @@ public:
     // remove wrong pair with ransac
     void eliminateOutliersFundamental(Keyframe& current,Keyframe& candidate);
     int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
-    void pnpCorrespondence(Keyframe& current);
+    void pnpCorrespondence(Keyframe& current,Keyframe& candidate);
     bool visualizePointMatch(int landmarkID,cv::Point2f point,cv::Point2f projectedLocation);
     //create feature
     void create_feature();
@@ -75,6 +75,8 @@ public:
     void generateKeyframe();
     void get2DfeaturePosition(vector<cv::Point2f> &point_2d, const vector<cv::KeyPoint> &good_kp2);
     void get3DfeaturePosition(vector<cv::Point3f> &point_3d, const cv::Mat &dpt1, const vector<cv::KeyPoint> &good_kp1);
+    void setConnectedFrame(vector<int>& connectedFrames);
+    void getInviewPoint(set<int>& inViewLandmark,set<int>& visited,int level,int startFrame);
     void set2DfeaturePosition(vector<cv::Point2f> &point_2d){
         this->point_2d.clear();
         this->point_2d = point_2d;
@@ -121,6 +123,7 @@ public:
     shared_ptr<LandmarkManager> landmark_manager;
     unordered_map<int,int> processedID;
     vector<pair<shared_ptr<Landmark>,int>> loopClosurePoint;
+    vector<int> connections;
 private:
     fbow::Vocabulary* pDB_;
     float minScoreAccept_; // Disregard ones lower than this

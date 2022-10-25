@@ -94,8 +94,9 @@ void LandmarkManager::updateLandmark(vector<int>& globalIds,vector<geometry_msgs
             landmarks[Id]->pointGlobal[0] = points[i].x;
             landmarks[Id]->pointGlobal[1] = points[i].y;
             landmarks[Id]->pointGlobal[2] = points[i].z;
+            landmarks[Id]->optimized = true;
         }
-        landmarks[Id]->optimized = true;
+     
 
     }
 }

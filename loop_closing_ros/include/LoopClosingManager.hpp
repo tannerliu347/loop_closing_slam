@@ -34,6 +34,7 @@ public:
     LoopClosingTool* loopDetector;
     bool cameraIntialized;
     shared_ptr<Camera> camera;
+    shared_ptr<Config> config;
 private: 
     ros::NodeHandle* nh;
     //ros::Subscriber keyframeSub_;

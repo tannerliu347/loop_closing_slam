@@ -38,8 +38,8 @@ struct Landmark {
             descriptor = newDescriotor;
         }
         else{
-            float newNorm = cv::norm(newDescriotor,cv::NORM_HAMMING);
-            float oldNorm = cv::norm(descriptor,cv::NORM_HAMMING);
+            float newNorm = cv::norm(newDescriotor,cv::NORM_L2);
+            float oldNorm = cv::norm(descriptor,cv::NORM_L2);
             if (newNorm < oldNorm){
                 descriptor = newDescriotor;
             }

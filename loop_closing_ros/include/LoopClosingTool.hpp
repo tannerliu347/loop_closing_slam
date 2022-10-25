@@ -61,7 +61,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     LoopClosingTool(fbow::Vocabulary* pDB,shared_ptr<Camera> camera,shared_ptr<Config> config);
    // bool detect_loop_test(const cv::Mat& img);
-    bool detect_loop(vector<Matchdata>& point_matches,inekf_msgs::State state);
+    bool detect_loop(vector<Matchdata>& point_matches,inekf_msgs::State state,vector<int>& connectedFrames);
     bool find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match);
     // remove wrong pair with ransac
     void eliminateOutliersFundamental(Keyframe& current,Keyframe& candidate);
@@ -72,10 +72,9 @@ public:
     void create_feature();
     void create_feature(std::vector<cv::KeyPoint> Keypoints);
     void assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID);
-    void generateKeyframe();
+    void generateKeyframe(vector<int>& connectedFrames);
     void get2DfeaturePosition(vector<cv::Point2f> &point_2d, const vector<cv::KeyPoint> &good_kp2);
     void get3DfeaturePosition(vector<cv::Point3f> &point_3d, const cv::Mat &dpt1, const vector<cv::KeyPoint> &good_kp1);
-    void setConnectedFrame(vector<int>& connectedFrames);
     void getInviewPoint(set<int>& inViewLandmark,set<int>& visited,int level,int startFrame);
     void set2DfeaturePosition(vector<cv::Point2f> &point_2d){
         this->point_2d.clear();
@@ -164,6 +163,7 @@ private:
     std::vector<cv::KeyPoint> good_lastKeypoints;
     std::vector<cv::Point3f> good_lastpoint3d;
     std::vector<cv::Mat> descriptors;
+    cv::Mat additionalDescriptors;
     cv::Mat currentDescriptors;
     parameters parameter;
     int id = 0;

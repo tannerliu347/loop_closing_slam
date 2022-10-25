@@ -16,6 +16,7 @@ class Keyframe {
     int                  globalKeyframeID;
     vector<cv::KeyPoint> keypoints;
     cv::Mat              descriptors;
+    cv::Mat              additionaldescriptors;
     vector<int>          globalIDs;
     vector<cv::Point3f>  point_3d;
     std::set<int>             connectedFrame;
@@ -31,7 +32,7 @@ class Keyframe {
     Keyframe(){
         globalKeyframeID = -1;
     }
-    Keyframe(int32_t f_id, const cv::Mat kf,  const cv::Mat d,const vector<cv::KeyPoint> &key_points, const cv::Mat dess)
+    Keyframe(int32_t f_id, const cv::Mat kf,  const cv::Mat d,const vector<cv::KeyPoint> &key_points, const cv::Mat dess,const cv::Mat adddess)
         : globalKeyframeID(f_id)
         , img(kf)
         , depth(d)
@@ -41,6 +42,7 @@ class Keyframe {
             cout << "failure empty " << endl;
         }
         descriptors = dess;
+        additionaldescriptors = adddess;
     }
 
     void insertGlobalID(int16_t g_id) {

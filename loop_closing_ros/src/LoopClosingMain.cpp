@@ -73,6 +73,7 @@ void handle_camera_info(sensor_msgs::CameraInfo::Ptr msg) {
     camera->updateParameter( msg->K[0],msg->K[4],msg->K[2], msg->K[5]);
     loop_manager.cameraIntialized = true;
     loop_manager.camera = camera;
+    loop_manager.config = config;
 }
 void handle_landmark_update(frontend::FeatureUpdate::Ptr msg){
     loop_manager.loopDetector->landmark_manager->updateLandmark(msg->globalIDs,msg->points);
@@ -109,6 +110,7 @@ int main(int argc, char **argv)
   nh.param<string>("camera_info_topic", camera_info,  "/camera/color/camera_info");
   nh.param<string>("body_frame", config->bodyFrame, "robot_imu");
   nh.param<string>("camera_frame", config->cameraFrame, "camera");
+  nh.param<string>("world_frame", config->worldFrame, "odom");
   //message filters
   message_filters::Subscriber<frontend::Keyframe> keyframe_sub_(nh, keyframe_topic, 5000);
   message_filters::Subscriber<inekf_msgs::State> state_sub_(nh, state_topic, 5000);

@@ -65,10 +65,9 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     for (auto id:msg->connection){
         connections.push_back(id);
     }
-    loopDetector->setConnectedFrame(connections);
     //loopDetector->assignRansacGuess(poseOrientation.toRotationMatrix(),positionVector);
     vector<Matchdata> point_matches;
-    bool loopdetected = loopDetector->detect_loop(point_matches,current_state);
+    bool loopdetected = loopDetector->detect_loop(point_matches,current_state,connections);
     //cv::imwrite("image"+std::to_string(keyframes.size())+".jpg",color );
     if (loopdetected){
         //update globalId
@@ -163,10 +162,11 @@ void LoopClosingManager::drawLine(int i){
     p_current.z = current_state.position.z;
     
     visualization_msgs::Marker line_strip;
-    line_strip.header.frame_id = "odom";
+    line_strip.header.frame_id = config->worldFrame;
     line_strip.header.stamp = ros::Time::now();
     line_strip.ns =  "points_and_lines";
     line_strip.action = visualization_msgs::Marker::ADD;
+    line_strip.type = visualization_msgs::Marker::LINE_STRIP;
     line_strip.pose.orientation.w = 1.0;
     line_strip.id = markerId++;
     line_strip.color.b = 1.0;
@@ -189,7 +189,7 @@ void LoopClosingManager::drawLine(const vector<int>& matchingIndex){
     p_current.z = current_state.position.z;
     for(int i = 0; i < matchingIndex.size();i++){
         visualization_msgs::Marker line_strip;
-        line_strip.header.frame_id = "odom";
+        line_strip.header.frame_id = config->worldFrame;
         line_strip.header.stamp = ros::Time::now();
         line_strip.ns =  "points_and_lines";
         line_strip.action = visualization_msgs::Marker::ADD;
@@ -218,7 +218,7 @@ void LoopClosingManager::drawPoint(const Sophus::SE3f pose){
     auto q = pose.unit_quaternion().coeffs();
     ROS_DEBUG_STREAM("Publish relative pose marker");
     visualization_msgs::Marker test_point;
-    test_point.header.frame_id = "odom";
+    test_point.header.frame_id = config->worldFrame;;
     test_point.header.stamp = ros::Time::now();
     test_point.ns =  "points";
     test_point.action = visualization_msgs::Marker::ADD;
@@ -247,7 +247,7 @@ void LoopClosingManager::drawPoint(const Sophus::SE3f pose){
         int status = pair.second;
         auto landmark = pair.first;
         visualization_msgs::Marker newPoint;
-        newPoint.header.frame_id = "odom";
+        newPoint.header.frame_id = config->worldFrame;;
         newPoint.header.stamp = ros::Time::now();
         newPoint.ns =  "Inview_point";
         newPoint.action = visualization_msgs::Marker::ADD;
@@ -270,7 +270,7 @@ void LoopClosingManager::drawPoint(const Sophus::SE3f pose){
                 newPoint.color.g = 0.5;
                 newPoint.color.r = 0.0;
            }else if (status == 4){
-                // yellow for point observed by candidate frame
+                // yellow for overlapping
                 newPoint.color.b = 0/255;
                 newPoint.color.g = 255/255;
                 newPoint.color.r = 255/255;

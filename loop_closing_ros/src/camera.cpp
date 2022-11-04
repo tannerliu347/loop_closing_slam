@@ -24,7 +24,7 @@ Sophus::SE3f Camera::CameraTrajectoryToImu(Sophus::SE3f T_w_c){
 }
 cv::Point2f Camera::camera2pixel(cv::Point3f p_c){
     float u =    fx_ * p_c.x / p_c.z + cx_;
-    float v =    fy_ * p_c.x / p_c.z + cy_;
+    float v =    fy_ * p_c.y / p_c.z + cy_;
     return cv::Point2f(u,v);
 }
 
@@ -34,6 +34,7 @@ cv::Point3f Camera::pixel2camera(cv::Point2f p_p, float depth){
     float z = depth;
     return cv::Point3f(x,y,z);
 }
+
 cv::Point2f Camera::world2pixel(cv::Point3f p_w, Sophus::SE3f T_w_i){
     return camera2pixel(eigenTocv(world2camera(cvToeigen(p_w), T_w_i)));
 }

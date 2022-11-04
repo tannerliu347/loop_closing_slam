@@ -547,7 +547,10 @@ void LoopClosingTool::pnpCorrespondence(Keyframe& current,Keyframe& candidate){
     // processedID.clear();
     getInviewPoint(InviewLandmarkIds_current,visited_current,2,currentGlobalKeyframeId);
     getInviewPoint(InviewLandmarkIds_current,visited_current,2,currentGlobalKeyframeId - 1);
+    
 
+    visualizeFrame(visited);
+    visualizeFrame(visited_current);
     set<int> intersection;
     // getInviewPoint(InviewLandmarkIds,visited,2,10);
     vector<shared_ptr<Landmark>> landmarks;
@@ -696,6 +699,50 @@ void LoopClosingTool::getInviewPoint(set<int>& inViewLandmark,set<int>& visited,
     for (auto connectedFrame:keyframes_[startFrame].connectedFrame){
         getInviewPoint(inViewLandmark,visited,level-1,connectedFrame);
       
+    }
+}
+void LoopClosingTool::visualizeFrame(set<int> frames){
+    for (auto frameID: frames){
+        vector<cv::KeyPoint> newKeypoints;
+        vector<cv::KeyPoint> detectedKeypoints;
+        vector<cv::DMatch>   projectDetectMatch;
+        if (keyframes_.count(frameID) != 0){
+            int index = 0;
+            for (auto landmarkID:keyframes_[frameID].globalIDs){
+                if(landmark_manager->landmarks.count(landmarkID)){
+                    if (landmark_manager->landmarks[landmarkID]->optimized){
+                        cv::KeyPoint newKeypoint;
+                        auto point3d = landmark_manager->landmarks[landmarkID]->pointGlobal;
+                        auto projectedLocation = camera_->world2pixel(eigenTocv(point3d),stateTose3(states[frameID]));
+                        newKeypoint.pt = projectedLocation;
+                        newKeypoints.push_back(newKeypoint);
+                        detectedKeypoints.push_back(keyframes_[frameID].keypoints[index]);
+
+                        cv::DMatch newmatch;
+                        newmatch.queryIdx = detectedKeypoints.size() -1;
+                        newmatch.trainIdx = detectedKeypoints.size() -1;
+                        projectDetectMatch.push_back(newmatch);
+                    }
+                }
+                index++;
+            }
+        }
+        cv::Mat projectionPic; 
+        cv::Mat detectionPic; 
+        cv::Mat matchPic;
+        cout <<"here" << endl;
+
+        if (!newKeypoints.empty()){
+            cv::drawKeypoints(keyframes_[frameID].img,newKeypoints,projectionPic,cv::Scalar::all(-1));
+            cv::drawKeypoints(keyframes_[frameID].img,detectedKeypoints,detectionPic,cv::Scalar::all(-1));
+            cv::imwrite("/home/bigby/ws/catkin_ws/Frame_id" + to_string(frameID) +".png",projectionPic);
+            cv::imwrite("/home/bigby/ws/catkin_ws/Frame_id_detection" + to_string(frameID) +".png",detectionPic);
+
+            cv::drawMatches(keyframes_[frameID].img, newKeypoints, keyframes_[frameID].img, detectedKeypoints, projectDetectMatch, matchPic, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+            cv::imwrite("/home/bigby/ws/catkin_ws/Frame_id_match" + to_string(frameID) +".png",matchPic);
+        }
+          
+        	
     }
 }
 bool LoopClosingTool::visualizePointMatch(int landmarkID,cv::Point2f point,cv::Point2f projectedLocation){

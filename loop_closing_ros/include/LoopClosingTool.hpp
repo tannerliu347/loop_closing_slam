@@ -68,6 +68,8 @@ public:
     int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
     void pnpCorrespondence(Keyframe& current,Keyframe& candidate);
     bool visualizePointMatch(int landmarkID,cv::Point2f point,cv::Point2f projectedLocation);
+    void visualizeProjectionFrame(set<int> currentFrameId, set<int> candidateFrameId);
+    void visualizeFrame(set<int> frames);
     //create feature
     void create_feature();
     void create_feature(std::vector<cv::KeyPoint> Keypoints);

@@ -72,7 +72,7 @@ public:
     void visualizeFrame(set<int> frames);
     //create feature
     void create_feature();
-    void create_feature(std::vector<cv::KeyPoint> Keypoints);
+    void create_feature(std::vector<cv::KeyPoint>& Keypoints,cv::Mat descriptors);
     void assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID);
     void generateKeyframe(vector<int>& connectedFrames);
     void get2DfeaturePosition(vector<cv::Point2f> &point_2d, const vector<cv::KeyPoint> &good_kp2);

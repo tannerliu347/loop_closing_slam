@@ -62,13 +62,16 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     }
     //calculate score of prev frame 
     double prevScore = 1;
-    if(keyframes_.count(frame.globalKeyframeID -1)!= 0){
+    ROS_DEBUG_STREAM("start finding potential frame"); 
+    
+    
+    if (keyframes_.count(frame.globalKeyframeID -1)!= 0 && (int(frame.globalKeyframeID) - int(near_frame_) > 0) ){
         fbow::fBow bowvector_prev = pDB_->transform(keyframes_[frame.globalKeyframeID -1].additionaldescriptors);
         fbow::fBow bowvector_cur = pDB_->transform(cur_desc);
         prevScore = fbow::fBow::score(bowvector_cur,bowvector_prev);
         ROS_DEBUG_STREAM("prevScore is "<< prevScore);
     }
-    // simple logic check to filter out unwanted
+    //simple logic check to filter out unwanted
     if (pq.empty()) {
         return false;
     }
@@ -78,7 +81,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     int Maxinlier = INT_MIN;
     // Store retured match
     vector<cv::DMatch> returned_matches;
-    set<int> candiateFrames; 
+    set<int> candiateFrames;
     if (pq.size() > 0){
          for (int i = 0; i < top && !pq.empty() ; i ++ ){
             int candidate_id = pq.top().first;
@@ -309,7 +312,7 @@ void LoopClosingTool::create_feature(){
     //descriptor->compute(currentImage, currentKeypoints, currentDescriptors);
     detector->compute(currentImage, currentKeypoints, currentDescriptors);
 }
-void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
+void LoopClosingTool::create_feature(std::vector<cv::KeyPoint>& Keypoints,cv::Mat descriptors){
     currentKeypoints.clear();
     currentDescriptors.release();
     additionalDescriptors.release();
@@ -340,7 +343,8 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint> Keypoints){
             detector = cv::AKAZE::create();
             break;
         }
-    detector->compute(currentImage, Keypoints,currentDescriptors);
+    // detector->compute(currentImage, Keypoints,currentDescriptors);
+    currentDescriptors = descriptors;
     vector<cv::KeyPoint> additionalKeypoint;
     extraDetector->detectAndCompute(currentImage, cv::Mat(), additionalKeypoint,additionalDescriptors);
     // currentDescriptors.push_back(additionalDescriptor);

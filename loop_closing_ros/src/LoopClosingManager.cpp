@@ -23,13 +23,16 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
 
     cv_bridge::CvImagePtr color_ptr;
     cv_bridge::CvImagePtr depth_ptr;
+  
     //cv_bridge::CvImagePtr descriptor_ptr;
     sensor_msgs::ImageConstPtr colorImg( new sensor_msgs::Image( msg->color ) );
     sensor_msgs::ImageConstPtr depthImg( new sensor_msgs::Image( msg->depth ) );
+   
     //sensor_msgs::ImageConstPtr descriptorImg( new sensor_msgs::Image( msg->descriptor) );
     try {
         color_ptr = cv_bridge::toCvCopy(colorImg, sensor_msgs::image_encodings::BGR8);
         depth_ptr = cv_bridge::toCvCopy(depthImg, sensor_msgs::image_encodings::TYPE_16UC1);
+       
         //descriptor_ptr = cv_bridge::toCvCopy(descriptorImg,sensor_msgs::image_encodings::TYPE_16UC1);
     } catch (cv_bridge::Exception &e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
@@ -37,6 +40,15 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     }
     cv::Mat color = color_ptr->image;
     cv::Mat depth = depth_ptr->image;
+    ROS_DEBUG_STREAM("load descriptor"); 
+    
+    cv::Mat descriptor= cv::Mat::zeros(msg->descriptor_shape[0], msg->descriptor_shape[1], CV_64F);
+    for (int i = 0; i < msg->descriptor_shape[0]; i ++){
+        for (int j = 0; j < msg->descriptor_shape[1];j++){
+            descriptor.at<float>(i,j) = msg->descriptor[i * msg->descriptor_shape[1] + j];
+        }
+    }
+     ROS_DEBUG_STREAM("load descriptor Complete"); 
     //cv::Mat descriptor = descriptor_ptr->image;
     
     //extract globalid, and key points, 
@@ -44,7 +56,7 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     std::vector<cv::Point2f> feature_2d;
     std::vector<cv::Point3f> feature_3d;
     std::vector<cv::KeyPoint> keypoints;
-    for (int i = 0; i < msg-> features.size(); i ++){
+    for (int i = 0; i < msg-> features.size(); i++){
         globalId.push_back(msg-> features[i].globalID);
         feature_2d.push_back(cv::Point2f(msg-> features[i].u,msg-> features[i].v));
         feature_3d.push_back(cv::Point3f(msg-> features[i].x,msg-> features[i].y,msg-> features[i].z));
@@ -57,7 +69,7 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     }
     vector<int> matchingIndex;
     loopDetector->assignNewFrame(color,depth,msg->frameID,globalId);
-    loopDetector->create_feature(keypoints);
+    loopDetector->create_feature(keypoints,descriptor);
     //loopDetector->create_feature();
     // loopDetector->set2DfeaturePosition(feature_2d);  
     loopDetector->set3DfeaturePosition(feature_3d);

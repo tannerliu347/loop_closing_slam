@@ -81,3 +81,12 @@ Sophus::SE3f stateTose3( inekf_msgs::State state){
     Eigen::Quaternionf poseOrientation(state.orientation.w, state.orientation.x, state.orientation.y, state.orientation.z);
     return  Sophus::SE3f(poseOrientation,positionVector);
 }
+
+vector<cv::Point2f> keypointToPoints(vector<cv::KeyPoint> kps){
+
+    vector<cv::Point2f> pts;
+    for (auto kp: kps){
+        pts.push_back(kp.pt);
+    }
+    return pts;
+}

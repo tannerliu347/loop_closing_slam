@@ -42,7 +42,7 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     cv::Mat depth = depth_ptr->image;
     ROS_DEBUG_STREAM("load descriptor"); 
     
-    cv::Mat descriptor= cv::Mat::zeros(msg->descriptor_shape[0], msg->descriptor_shape[1], CV_64F);
+    cv::Mat descriptor= cv::Mat::zeros(msg->descriptor_shape[0], msg->descriptor_shape[1], CV_32F);
     for (int i = 0; i < msg->descriptor_shape[0]; i ++){
         for (int j = 0; j < msg->descriptor_shape[1];j++){
             descriptor.at<float>(i,j) = msg->descriptor[i * msg->descriptor_shape[1] + j];

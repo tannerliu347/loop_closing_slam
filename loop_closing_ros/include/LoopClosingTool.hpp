@@ -24,7 +24,7 @@
 #include "camera.h"
 #include "config.h"
 #include "landmark_manager.h"
-
+#include "RobustMatcher.h"
 // class keyframe{
 
 // };
@@ -125,6 +125,7 @@ public:
     unordered_map<int,int> processedID;
     vector<pair<shared_ptr<Landmark>,int>> loopClosurePoint;
     vector<int> connections;
+    shared_ptr<RobustMatcher> robust_matcher; 
 private:
     fbow::Vocabulary* pDB_;
     float minScoreAccept_; // Disregard ones lower than this

@@ -8,6 +8,7 @@ LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB,shared_ptr<Camera> camera
         lastLoopClosure_ = -1;
         currentGlobalKeyframeId = 0;
         landmark_manager.reset(new LandmarkManager(config,camera));
+        robust_matcher.reset(new RobustMatcher());
     }
 
 bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches,inekf_msgs::State state,vector<int>& connectedFrames){
@@ -79,6 +80,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     int Maxinlier_Id = INT_MIN;
     RelativePose Maxinlier_Pose;
     int Maxinlier = INT_MIN;
+    cv::Mat matrixF;
     // Store retured match
     vector<cv::DMatch> returned_matches;
     set<int> candiateFrames;
@@ -87,7 +89,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             int candidate_id = pq.top().first;
             double candidate_score = pq.top().second;
             pq.pop();
-            if (candidate_score <= prevScore) {
+            if (candidate_score <= prevScore * 0.8) {
                 break;
             } 
             ROS_DEBUG_STREAM("candidate_id "<< candidate_id << "  score::  " << candidate_score);
@@ -98,9 +100,9 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
                 ROS_DEBUG_STREAM("cannot find current state");
             }
             candiateFrames.insert(candidate_id);
-            for (auto connected_id : keyframes_[candidate_id].connectedFrame){
-                candiateFrames.insert(connected_id);
-            }
+            // for (auto connected_id : keyframes_[candidate_id].connectedFrame){
+            //     candiateFrames.insert(connected_id);
+            // }
          }
     }
     if (candiateFrames.size() > 0){
@@ -129,22 +131,33 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             }else{
                 ROS_ERROR_STREAM("cannot find frame " << candidate_id);
             }
-            int inlier = ransac_featureMatching(frame,candidate_frame);
-            //eliminateOutliersPnP(frame,candidate_frame,pose);
-            pnpCorrespondence(frame,candidate_frame);
-            eliminateOutliersFundamental(frame,candidate_frame);
+            // int inlier_x = ransac_featureMatching(frame,candidate_frame);
+            vector<cv::DMatch> out_test_match;
+            vector<cv::KeyPoint> KeyPoint1 = candidate_frame.keypoints;
+            vector<cv::KeyPoint> KeyPoint2 = frame.keypoints;
+
+            cv::Mat matrixF_current = robust_matcher->match(candidate_frame.img,frame.img,good_matches,KeyPoint1,KeyPoint2,candidate_frame.descriptors,frame.descriptors);
+      
+            // cv::Mat Ematrox = cv::essentialFromFundamental(InputArray F, InputArray K1, InputArray K2, OutputArray E)
+            // eliminateOutliersPnP(frame,candidate_frame,pose);
+            // pnpCorrespondence(frame,candidate_frame);
+            // eliminateOutliersFundamental(frame,candidate_frame);
             //ransac_matches = good_matches;
             //eliminateOutliersFundamental(frame,candidate_frame);
-            inlier = ransac_matches.size();
+            
+            int inlier = good_matches.size();
+            // int inlier_orginal = ransac_matches.size();
             ROS_DEBUG_STREAM("Inlier size is " << inlier);
+            // ROS_DEBUG_STREAM("Inlier orginal size is " << inlier_orginal);
             //int inlier = 100;
             if (inlier > inlier_){
                 loop_detected = true;
                 if (inlier >  Maxinlier){
-                    returned_matches.assign(ransac_matches.begin(), ransac_matches.end());
+                    returned_matches = good_matches;
                     Maxinlier_Id = candidate_id;
                     Maxinlier = inlier;
                     Maxinlier_Pose = pose;
+                    matrixF = matrixF_current;
                 }            
             }
             good_matches.clear();
@@ -155,10 +168,35 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     }
     //pDB_->add(cur_desc);
     
+    if (loop_detected && matrixF.rows == 3){
+        cv::Mat matrixE = camera_->K_cv().t() * matrixF * camera_->K_cv();
+        cv::Mat R;
+        cv::Mat t;
+        cv::Mat mask;
+
+        vector<cv::KeyPoint> KeyPoint_candidate = keyframes_[Maxinlier_Id].keypoints;
+        vector<cv::KeyPoint> KeyPoint_current = frame.keypoints;
+        vector<cv::Point2f> Point_candidate;
+        vector<cv::Point2f> Point_current;
+        for (auto match:returned_matches ){
+            Point_candidate.push_back(KeyPoint_candidate[match.queryIdx].pt);
+            Point_current.push_back(KeyPoint_candidate[match.trainIdx].pt);
+        }
+        cout << Point_candidate.size() << " ----  " << Point_current.size() << endl;
+        cv::recoverPose(matrixE,Point_candidate,Point_current,camera_->K_cv(),R,t,mask);
+        Maxinlier_Pose.pos[0] = t.at<float>(0,0);
+        Maxinlier_Pose.pos[1] = t.at<float>(0,0);
+        Maxinlier_Pose.pos[2] = t.at<float>(0,0);
+        cv::cv2eigen(R, Maxinlier_Pose.rot);
+        
+    }
+    
     if (loop_detected){
         lastLoopClosure_ = currentGlobalKeyframeId;
        point_match = genearteNewGlobalId(frame,keyframes_[Maxinlier_Id],returned_matches,Maxinlier_Pose);
     }
+   
+            
     return loop_detected;
 }
 
@@ -176,26 +214,26 @@ void LoopClosingTool::eliminateOutliersFundamental(Keyframe& current,Keyframe& c
     if (lastPoints.size() < 8){
         return;
     }
-    cv::Mat E = cv::findEssentialMat(lastPoints, currentPoints, camera_->K_cv(), cv::RANSAC, 0.999, 1.0, status);
+    cv::Mat F = cv::findFundamentalMat(lastPoints, currentPoints, cv::RANSAC, 0.999, 1.0, status);
     for (int i = 0; i < lastPoints.size(); i++) {
         if (status[i]) {
             ransac_matches.push_back(good_matches[i]);
             ransac_matches_id_map.insert({good_matches[i].trainIdx, good_matches[i].queryIdx});
         }
     }
-    // cv::Mat imMatches;
-    // cv::drawMatches(candidate.img, candidate.keypoints, current.img, current.keypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
-    //         //cv::imshow("matches_window", imMatches);
-    //         cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
-    //         cv::imshow("image", imMatches);
-    //         //if(ransac_matches.size() > 2){
-    //              cv::imwrite("/home/bigby/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
-    //         //}
-    //         //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
-    //         //cv::imshow("matches_window", imMatches);
-    //         //cv::waitKey(1);
-    //         cv::waitKey(1);
-    //         ROS_DEBUG_STREAM("Total match " << ransac_matches.size() );
+    cv::Mat imMatches;
+    cv::drawMatches(candidate.img, candidate.keypoints, current.img, current.keypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+            //cv::imshow("matches_window", imMatches);
+            cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
+            cv::imshow("image", imMatches);
+            //if(ransac_matches.size() > 2){
+                 cv::imwrite("/home/bigby/ws/catkin_ws/result" + std::to_string(id)+ ".bmp",imMatches );
+            //}
+            //cv::drawMatches(lastImage, lastKeypoints, currentImage, currentKeypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
+            //cv::imshow("matches_window", imMatches);
+            //cv::waitKey(1);
+            cv::waitKey(1);
+            ROS_DEBUG_STREAM("Total match " << ransac_matches.size() );
 }
 
 int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidate){
@@ -343,8 +381,10 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint>& Keypoints,cv::Ma
             detector = cv::AKAZE::create();
             break;
         }
-    // detector->compute(currentImage, Keypoints,currentDescriptors);
-    currentDescriptors = descriptors;
+   
+    detector->compute(currentImage, Keypoints,currentDescriptors);
+    
+    //currentDescriptors = descriptors;
     vector<cv::KeyPoint> additionalKeypoint;
     extraDetector->detectAndCompute(currentImage, cv::Mat(), additionalKeypoint,additionalDescriptors);
     // currentDescriptors.push_back(additionalDescriptor);

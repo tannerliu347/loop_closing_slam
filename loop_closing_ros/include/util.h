@@ -1,6 +1,6 @@
 #ifndef UTIL_H
 #define UTIL_H
-
+using namespace std;
 #include <sophus/se3.hpp>
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -26,5 +26,6 @@ cv::Point2f eigenTocv(Eigen::Vector2f p_e);
 Eigen::Vector3f cvToeigen(cv::Point3f p_c);
 Eigen::Vector2f cvToeigen(cv::Point2f p_c);
 Sophus::SE3f stateTose3( inekf_msgs::State state);
+vector<cv::Point2f> keypointToPoints(vector<cv::KeyPoint> kps);
 
 #endif // SIMPLE_DVO_UTIL_H

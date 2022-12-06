@@ -7,6 +7,8 @@ from gtsam import Point3, Pose3, Rot3
 from gtsam.symbol_shorthand import X,L
 # gtsam.utils.plot.plot_trajectory(0,initial)
 from landmarkManager import LandmarkManager,Observation,Landmark,Frame
+import inspect
+import cv2
 MatchingId_cur = []
 MatchingId_old = []
 Measurement = []
@@ -162,6 +164,22 @@ def windowOptimization(loopPose,curId,oldId,currentEstimate):
     
 
 
+def pose3Tonp(pose):
+    return np.array(pose.matrix())
+   
+def triangulation(pose1,psoe2,observation1,observation2):
+    fx = landmarkManager.cameraMatrix.fx()
+    fy = landmarkManager.cameraMatrix.fy()
+    px = landmarkManager.cameraMatrix.px()
+    py = landmarkManager.cameraMatrix.py()
+
+    K = np.array([[fx, 0 ,px],[0,fy,py],[0,0,1]])
+    T1= pose3Tonp(pose1)[0:3,:]
+    T2= pose3Tonp(psoe2)[0:3,:]
+    Point = cv2.triangulatePoints(T1, T2, np.array(observation1.pointUV), np.array(observation2.pointUV))
+    Point = Point/Point[3]
+    return Point[0:3]
+
 
 
 def globalBA(loopPose,curId,oldId,currentEstimate):
@@ -175,8 +193,8 @@ def globalBA(loopPose,curId,oldId,currentEstimate):
     graph = gtsam.NonlinearFactorGraph()
     initial = gtsam.Values()
     # gtsam pose Vs odometry pose
-    gtsamPose = True
-
+    gtsamPose = False
+    
     print(loopPose)
     loopPose = windowOptimization(loopPose,curId,oldId,currentEstimate)
     
@@ -191,7 +209,6 @@ def globalBA(loopPose,curId,oldId,currentEstimate):
     for id in range(1,maxId + 1):
         # check connected id 
         if not gtsamPose:
-            print("here")
             currentPose = odometryPose[id]
         else:
             currentPose = currentEstimate.atPose3(id)
@@ -210,12 +227,20 @@ def globalBA(loopPose,curId,oldId,currentEstimate):
     for pointId,landmark in landmarkManager.landmarks.items():
         if pointId not in landmarkManager.landmarks:
             continue
+        if len(landmark.observedFrames) == 2:
+            keys = list(landmark.observedFrames.keys())
+            if (keys[0] == 0):
+                keys[0] = 1
+            pose1 = currentEstimate.atPose3(keys[0])
+            pose2 = currentEstimate.atPose3(keys[1])
+            observation1 = landmark.observations[keys[0]]
+            observation2 = landmark.observations[keys[1]]
+            triangulation(pose1,pose2,observation1,observation2)
         if len(landmark.observedFrames) < 2:
             continue
         landmarkEstiamtion = landmarkManager.landmarks[pointId].pointXYZ
         initial.insert(L(pointId), landmarkEstiamtion)
-        if (pointId == 4):
-            print(landmarkEstiamtion)
+        
         for frameId, frame in landmark.observedFrames.items():
             oberservation =  landmark.observations[frameId].pointUV
            
@@ -276,6 +301,7 @@ if __name__ == '__main__':
     odometryPose[0] = gtsam.Pose3()
     print(curId,oldId)
     __, currentEstimate = gtsam.readG2o("/home/bigby/curly_slam/catkin_ws/test.g2o", True)
+    pose3Tonp(currentEstimate.atPose3(0))
     currentEstimate = gtsam.Values(currentEstimate)
     # gtsam.utils.plot.plot_trajectory(1,currentEstimate)
     params = gtsam.GaussNewtonParams()

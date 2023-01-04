@@ -14,9 +14,14 @@ class LandmarkManager:
         self.cameraMatrix = None
         self.cameraPose = None
 class Observation:
-    def __init__(self,frameId,pointUV):
+    def __init__(self,frameId,pointUV,depth = -1):
         self.framId = frameId
         self.pointUV = pointUV
+        self.depth = depth
+    # def __init__(self,frameId,pointUV):
+    #     self.framId = frameId
+    #     self.pointUV = pointUV
+       
 class Landmark:
     def __init__(self,landmarkId):
         self.landmarkId = landmarkId

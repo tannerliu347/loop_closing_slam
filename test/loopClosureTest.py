@@ -173,10 +173,10 @@ def triangulation(pose1,psoe2,observation1,observation2):
     px = landmarkManager.cameraMatrix.px()
     py = landmarkManager.cameraMatrix.py()
 
-    K = np.array([[fx, 0 ,px],[0,fy,py],[0,0,1]])
-    T1= pose3Tonp(pose1)[0:3,:]
-    T2= pose3Tonp(psoe2)[0:3,:]
-    Point = cv2.triangulatePoints(T1, T2, np.array(observation1.pointUV), np.array(observation2.pointUV))
+    K = np.array([[fx, 0 ,px,0],[0,fy,py,0],[0,0,1,0]])
+    T1= pose3Tonp(pose1)
+    T2= pose3Tonp(psoe2)
+    Point = cv2.triangulatePoints(K@T1, K@T2, np.array(observation1.pointUV), np.array(observation2.pointUV))
     Point = Point/Point[3]
     return Point[0:3]
 

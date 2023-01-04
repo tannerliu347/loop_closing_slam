@@ -5,7 +5,35 @@ import matplotlib.pyplot as plt
 from landmarkManager import LandmarkManager,Landmark,Observation,Frame
 Path = "/home/bigby/Downloads/tartanair_tools-master/seasidetown/Easy/seasidetown/seasidetown/Easy/P002/"
 
-
+def quaternion_to_rotation_matrix(Q):
+    # from https://automaticaddison.com/how-to-convert-a-quaternion-to-a-rotation-matrix/
+    # Q: w x y z
+    q0 = Q[0]
+    q1 = Q[1]
+    q2 = Q[2]
+    q3 = Q[3]
+     
+    # First row of the rotation matrix
+    r00 = 2 * (q0 * q0 + q1 * q1) - 1
+    r01 = 2 * (q1 * q2 - q0 * q3)
+    r02 = 2 * (q1 * q3 + q0 * q2)
+     
+    # Second row of the rotation matrix
+    r10 = 2 * (q1 * q2 + q0 * q3)
+    r11 = 2 * (q0 * q0 + q2 * q2) - 1
+    r12 = 2 * (q2 * q3 - q0 * q1)
+     
+    # Third row of the rotation matrix
+    r20 = 2 * (q1 * q3 - q0 * q2)
+    r21 = 2 * (q2 * q3 + q0 * q1)
+    r22 = 2 * (q0 * q0 + q3 * q3) - 1
+     
+    # 3x3 rotation matrix
+    rot_matrix = np.array([[r00, r01, r02],
+                           [r10, r11, r12],
+                           [r20, r21, r22]])
+                            
+    return rot_matrix
 class flowParser():
     def __init__(self,flowPath):
         # Load flow mask
@@ -41,12 +69,40 @@ class flowParser():
             
             self.imageMap[imageIndex] = cv2.imread(path)
         
+        # Load Pose 
+        self.poses = {}
+       
+        with open(flowPath + "pose_left.txt", 'r') as file:
+            lines = file.readlines()
+            count = 0
+            for line in lines:
+                data = [float(x) for x in line[:-1].split(' ')]
+                rot = quaternion_to_rotation_matrix(data[6:7]+data[3:6]).reshape(9).tolist()
+                t = np.array([data[0],data[1],data[2]])
+                self.poses[count] = (rot,t)
+                count += 1 
+        # Load Depth
+        self.depthMap = {}
+        
+        depthPaths =  glob.glob(flowPath + 'depth_left/*.npy')
+        print(depthPaths)
+        
+        for path in depthPaths :
+            filename = path.split('/')[-1]
+            filename = filename.split('.')[0]
+            depthIndex = int(filename.split('_')[0]) 
+            depthData = np.load(path)
+            self.depthMap[depthIndex] = depthData
+
+
+
+        # Frontend processing 
         self.currentKps = []
         self.nextKps = []
         self.matches = []
         self.curGlobalIDs= []
         self.matches_id_map = {}
-        print(self.imageMap[0].shape)
+        
         self.frameID = 0
         self.landmarkId = 0
         self.image  = self.imageMap[0]
@@ -56,6 +112,30 @@ class flowParser():
         self.landmarkManager = LandmarkManager()
 
         # Todo: multi frame flow track
+    def triangulation(self,pose1,pose2,observation1,observation2):
+        fx = 320
+        fy = 320 
+        px = 320
+        py = 240
+        K = np.array([[fx, 0 ,px,0],[0,fy,py,0],[0,0,1,0]])
+        t1 = pose1[1]
+        rot1 = np.array(pose1[0]).reshape(3,3)
+        t2 = pose2[1]
+        rot2 = np.array(pose2[0]).reshape(3,3)
+        T1 = np.zeros((4,4))
+        T1[0:3,0:3] = rot1
+        T1[0:3,2] = t1.T
+        T1[3,3] = 1
+        
+
+        T2 = np.zeros((4,4))
+        T2[0:3,0:3] = rot2
+        T2[0:3,2] = t2.T
+        T2[3,3] = 1
+        
+        Point = cv2.triangulatePoints(K@T1, K@T2, np.array(observation1.pointUV), np.array(observation2.pointUV))
+        Point = Point/Point[3]
+        return Point[0:3]
     def create_Keyframe(self):
         # go through current match 
         newGlobalId =[]
@@ -75,20 +155,28 @@ class flowParser():
                 # new Point save both cur and next
                 if globalId not in self.landmarkManager.landmarks:
                     newLandmark = Landmark(globalId)
-                    newObservationCur = Observation(self.frameID,self.currentKps[cur_index].pt)
-                    newObservationNe = Observation(self.frameID + self.frameGap,self.nextKps[i].pt)
+                    depth_cur = self.depthMap[self.frameID][int(self.currentKps[cur_index].pt[1]),int(self.currentKps[cur_index].pt[0])]
+                    depth_Ne = self.depthMap[self.frameID + self.frameGap][int(self.nextKps[i].pt[1]),int(self.nextKps[i].pt[0])]
+                    newObservationCur = Observation(self.frameID,self.currentKps[cur_index].pt,depth_cur)
+                    newObservationNe = Observation(self.frameID + self.frameGap,self.nextKps[i].pt,depth_Ne)
                     newLandmark.observations[self.frameID] = newObservationCur
                     newLandmark.observations[self.frameID + self.frameGap] = newObservationNe
+                    # Triangulation
+                    poseCur = self.poses[self.frameID]
+                    poseNe = self.poses[self.frameID + self.frameGap]
+                    point = self.triangulation(poseCur,poseNe,newObservationCur,newObservationNe)
+                    newLandmark.pointXYZ = point
                     self.landmarkManager.landmarks[globalId]= newLandmark
                     self.landmarkManager.frames[self.frameID + 1].observedLandmarks[globalId] = self.landmarkManager.landmarks[globalId]
                     self.landmarkManager.frames[self.frameID].observedLandmarks[globalId] = self.landmarkManager.landmarks[globalId]
             else:
                 globalId = self.curGlobalIDs[cur_index]
                 # old Point only save next 
-                newObservationNe = Observation(self.frameID + self.frameGap,self.nextKps[i].pt)
+                depth_Ne = self.depthMap[self.frameID + self.frameGap][int(self.nextKps[i].pt[1]),int(self.nextKps[i].pt[0])]
+                newObservationNe = Observation(self.frameID + self.frameGap,self.nextKps[i].pt,depth_Ne)
                 self.landmarkManager.landmarks[globalId].observations[self.frameID + self.frameGap] = newObservationNe
                 self.landmarkManager.frames[self.frameID + 1].observedLandmarks[globalId] = self.landmarkManager.landmarks[globalId]
-
+                
             
 
             newGlobalId.append(globalId)
@@ -116,7 +204,7 @@ class flowParser():
             if (not advance):
                 break
             self.frameID+=1
-            # self.createKeyframe()
+            
             
             # Update image, flow, and flow mask
             try:
@@ -138,11 +226,35 @@ class flowParser():
         f.write("CAMERA 320 320 320 240\n")
         for frameID in range(lastFrameId):
             f.write("FRAME " + str(frameID) +"\n")
+            f.write("DATASET_SEQ " + str(frameID) +"\n")
             frame = self.landmarkManager.frames[frameID]
             for LandmarkId,ld in frame.observedLandmarks.items():
-                f.write("FEATURE " + str(LandmarkId) + "\n")
+                f.write("FEATURE " + str(LandmarkId) + " ")
+                observation = ld.observations[frameID]
+                pointXYZ = ld.pointXYZ
+                f.write(str(observation.pointUV[0]) + " " + str(observation.pointUV[1])+ str(observation.depth) + " ")
+                f.write(str(pointXYZ[0]) + " " + str(pointXYZ[1]) + " " + str(pointXYZ[2]) + "\n" )
+            # write camPose 
+            pose = self.poses[frameID]
+            rot = pose[0]
+            t = pose[1]
+            f.write("pose.rot\n")
+            f.write(str(rot[0]) + " " + str(rot[1]) + " " + str(rot[2]) + "\n")
+            f.write(str(rot[3]) + " " + str(rot[4]) + " " + str(rot[5]) + "\n")
+            f.write(str(rot[6]) + " " + str(rot[7]) + " " + str(rot[8]) + "\n")
+            f.write("pose.pos\n")
+            f.write(str(t[0]) + " " + str(t[1]) + " " + str(t[2]) + "\n")
+            f.write("cam.rot\n")
+            f.write("0 0 1\n")
+            f.write("1 0 0\n")
+            f.write("0 1 0\n")
+            f.write("cam.pos\n")
+            f.write("0\n")
+            f.write("0\n")
+            f.write("0\n")
 
 
+        
         # camera = ["CAMERA",320,320,320,240]
         # calibration = 
         f.close()

@@ -85,7 +85,6 @@ class flowParser():
         self.depthMap = {}
         
         depthPaths =  glob.glob(flowPath + 'depth_left/*.npy')
-        print(depthPaths)
         
         for path in depthPaths :
             filename = path.split('/')[-1]
@@ -124,17 +123,17 @@ class flowParser():
         rot2 = np.array(pose2[0]).reshape(3,3)
         T1 = np.zeros((4,4))
         T1[0:3,0:3] = rot1
-        T1[0:3,2] = t1.T
+        T1[0:3,3] = t1.T
         T1[3,3] = 1
-        
-
+   
         T2 = np.zeros((4,4))
         T2[0:3,0:3] = rot2
-        T2[0:3,2] = t2.T
+        T2[0:3,3] = t2.T
         T2[3,3] = 1
         
         Point = cv2.triangulatePoints(K@T1, K@T2, np.array(observation1.pointUV), np.array(observation2.pointUV))
         Point = Point/Point[3]
+      
         return Point[0:3]
     def create_Keyframe(self):
         # go through current match 
@@ -157,6 +156,7 @@ class flowParser():
                     newLandmark = Landmark(globalId)
                     depth_cur = self.depthMap[self.frameID][int(self.currentKps[cur_index].pt[1]),int(self.currentKps[cur_index].pt[0])]
                     depth_Ne = self.depthMap[self.frameID + self.frameGap][int(self.nextKps[i].pt[1]),int(self.nextKps[i].pt[0])]
+                  
                     newObservationCur = Observation(self.frameID,self.currentKps[cur_index].pt,depth_cur)
                     newObservationNe = Observation(self.frameID + self.frameGap,self.nextKps[i].pt,depth_Ne)
                     newLandmark.observations[self.frameID] = newObservationCur
@@ -233,7 +233,8 @@ class flowParser():
                 observation = ld.observations[frameID]
                 pointXYZ = ld.pointXYZ
                 f.write(str(observation.pointUV[0]) + " " + str(observation.pointUV[1])+ str(observation.depth) + " ")
-                f.write(str(pointXYZ[0]) + " " + str(pointXYZ[1]) + " " + str(pointXYZ[2]) + "\n" )
+               
+                f.write(str(pointXYZ[0,0]) + " " + str(pointXYZ[1,0]) + " " + str(pointXYZ[2,0]) + "\n" )
             # write camPose 
             pose = self.poses[frameID]
             rot = pose[0]

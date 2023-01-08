@@ -109,6 +109,8 @@ class flowParser():
         self.matches_id_map = {}
         
         self.frameID = 0
+        self.index = 0
+
         self.landmarkId = 0
         self.image  = self.imageMap[0]
         self.flowMask = self.flowmaskMap[0]
@@ -162,15 +164,15 @@ class flowParser():
                 if globalId not in self.landmarkManager.landmarks:
                     newLandmark = Landmark(globalId)
                     depth_cur = self.depthMap[self.frameID][int(self.currentKps[cur_index].pt[1]),int(self.currentKps[cur_index].pt[0])]
-                    depth_Ne = self.depthMap[self.frameID + self.frameGap][int(self.nextKps[i].pt[1]),int(self.nextKps[i].pt[0])]
+                    depth_Ne = self.depthMap[self.index + self.frameGap][int(self.nextKps[i].pt[1]),int(self.nextKps[i].pt[0])]
                   
                     newObservationCur = Observation(self.frameID,self.currentKps[cur_index].pt,depth_cur)
-                    newObservationNe = Observation(self.frameID + self.frameGap,self.nextKps[i].pt,depth_Ne)
+                    newObservationNe = Observation(self.frameID + 1,self.nextKps[i].pt,depth_Ne)
                     newLandmark.observations[self.frameID] = newObservationCur
-                    newLandmark.observations[self.frameID + self.frameGap] = newObservationNe
+                    newLandmark.observations[self.frameID + 1] = newObservationNe
                     # Triangulation
                     poseCur = self.poses[self.frameID]
-                    poseNe = self.poses[self.frameID + self.frameGap]
+                    poseNe = self.poses[self.index + self.frameGap]
                     point = self.triangulation(poseCur,poseNe,newObservationCur,newObservationNe)
                     newLandmark.pointXYZ = point
                     self.landmarkManager.landmarks[globalId]= newLandmark
@@ -179,9 +181,9 @@ class flowParser():
             else:
                 globalId = self.curGlobalIDs[cur_index]
                 # old Point only save next 
-                depth_Ne = self.depthMap[self.frameID + self.frameGap][int(self.nextKps[i].pt[1]),int(self.nextKps[i].pt[0])]
-                newObservationNe = Observation(self.frameID + self.frameGap,self.nextKps[i].pt,depth_Ne)
-                self.landmarkManager.landmarks[globalId].observations[self.frameID + self.frameGap] = newObservationNe
+                depth_Ne = self.depthMap[self.index + self.frameGap][int(self.nextKps[i].pt[1]),int(self.nextKps[i].pt[0])]
+                newObservationNe = Observation(self.frameID + 1,self.nextKps[i].pt,depth_Ne)
+                self.landmarkManager.landmarks[globalId].observations[self.frameID + 1] = newObservationNe
                 self.landmarkManager.frames[self.frameID + 1].observedLandmarks[globalId] = self.landmarkManager.landmarks[globalId]
                 
             
@@ -211,6 +213,7 @@ class flowParser():
             if (not advance):
                 break
             self.frameID+=1
+            self.index+=self.frameGap
             
             
             # Update image, flow, and flow mask
@@ -348,7 +351,7 @@ class flowParser():
             pointWorld_h[0:3,:] = pointWorld
             pointLocal_h = np.linalg.inv(T1) @pointWorld_h
             pointLocal_h = pointLocal_h/pointLocal_h[3,0]
-            return pointLocal_h[0:3,:]T_Cal
+            return pointLocal_h[0:3,:]
             
         # get keypoints from oldId frame
         frame = self.landmarkManager.frames[oldId]
@@ -380,7 +383,7 @@ class flowParser():
                                      np.zeros(5))
             
         print(rvec)
-        rot = cv2.Rodrigues(rvec)[1]
+        rot = cv2.Rodrigues(rvec)[0]
         
         
         pose = self.poses[oldId]
@@ -390,11 +393,10 @@ class flowParser():
         T_GT[3,3] = 1
 
         T_Cal = np.zeros((4,4))
-        T_Cal[0:3,0:3] = rvec
+        T_Cal[0:3,0:3] = rot
         T_Cal[0:3,3] = tvec.reshape(3)
         T_Cal[3,3] = 1
-        print(T_Cal)
-        T_GT = np.linalg.inv(T_GT)
+        T_Cal = np.linalg.inv(T_Cal)
         print("pnp result")
         print(T_Cal)
         print("ground truth")

@@ -84,17 +84,6 @@ def readLoopData(path):
             if landmarkId not in landmarkManager.landmarks:
                 landmarkManager.landmarks[landmarkId] = Landmark(landmarkId)
             landmarkManager.landmarks[landmarkId].pointXYZ = landmarkEstimation
-            
-
-
-
-
-
-
-
-            
-
-
     f.close()
     loopPose = gtsam.Pose3(rq,t)
     return curId,oldId,loopPose
@@ -349,7 +338,7 @@ if __name__ == '__main__':
    
     # add loop closure
     # loopPose = currentEstimate.atPose3(oldId).inverse() * currentEstimate.atPose3(curId) 
-    
+    connected_pose
     graph.add(gtsam.BetweenFactorPose3(oldId, curId,loopPose, loopNoise))
     # add more loop closure constraint 
 

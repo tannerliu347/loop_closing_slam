@@ -37,6 +37,12 @@ def quaternion_to_rotation_matrix(Q):
 class flowParser():
     def __init__(self,flowPath):
         # Load flow mask
+        fx = 320
+        fy = 320 
+        px = 320
+        py = 240
+        self.K = np.array([[fx, 0 ,px],[0,fy,py],[0,0,1]])
+
         self.imageH = 480
         self.imageW = 640
         self.featureNum = 100
@@ -117,6 +123,7 @@ class flowParser():
         px = 320
         py = 240
         K = np.array([[fx, 0 ,px,0],[0,fy,py,0],[0,0,1,0]])
+
         t1 = pose1[1]
         rot1 = np.array(pose1[0]).reshape(3,3)
         t2 = pose2[1]
@@ -214,6 +221,8 @@ class flowParser():
             except:
                 print("all frame parsed")
                 self.saveFrontendResult(self.frameID)
+                self.windowTest(206,113)
+
                 return
             
 
@@ -224,6 +233,8 @@ class flowParser():
         f = open("groundtruthflowFrontend.txt",'w')
         f.write("FORMAT 1\n")
         f.write("CAMERA 320 320 320 240\n")
+        f.write("CALIBRATION 0 0 1 1 0 0 0 1 0 0 0 0\n")
+        
         for frameID in range(lastFrameId):
             f.write("FRAME " + str(frameID) +"\n")
             f.write("DATASET_SEQ " + str(frameID) +"\n")
@@ -232,7 +243,7 @@ class flowParser():
                 f.write("FEATURE " + str(LandmarkId) + " ")
                 observation = ld.observations[frameID]
                 pointXYZ = ld.pointXYZ
-                f.write(str(observation.pointUV[0]) + " " + str(observation.pointUV[1])+ str(observation.depth) + " ")
+                f.write(str(observation.pointUV[0]) + " " + str(observation.pointUV[1])+ " " +  str(observation.depth) + " ")
                
                 f.write(str(pointXYZ[0,0]) + " " + str(pointXYZ[1,0]) + " " + str(pointXYZ[2,0]) + "\n" )
             # write camPose 
@@ -317,7 +328,91 @@ class flowParser():
         cv2.imshow('SIFT', matched_image)
         # cv2.waitKey(0)
         return True
-                
+
+    def windowTest(self,curId,oldId):
+        oldPoints = []
+        old3dPointsWorld = []
+        old3dPointsLocal = []
+
+        
+        curPoints = []
+        cur3dPointsWorld = []
+        cur3dPointsLocal = []
+
+        def pointWorldToCam(pose,pointWorld):
+            T1 = np.zeros((4,4))
+            T1[0:3,0:3] = np.array(pose[0]).reshape(3,3)
+            T1[0:3,3] = pose[1].T
+            T1[3,3] = 1
+            pointWorld_h = np.zeros((4,1))
+            pointWorld_h[0:3,:] = pointWorld
+            pointLocal_h = np.linalg.inv(T1) @pointWorld_h
+            pointLocal_h = pointLocal_h/pointLocal_h[3,0]
+            return pointLocal_h[0:3,:]T_Cal
+            
+        # get keypoints from oldId frame
+        frame = self.landmarkManager.frames[oldId]
+        for LandmarkId,ld in frame.observedLandmarks.items():
+            observation = ld.observations[oldId]
+            pointXYZ = ld.pointXYZ
+            old3dPointsWorld.append(pointXYZ)
+            old3dPointsLocal.append(pointWorldToCam(self.poses[oldId],pointXYZ))
+            oldPoints.append(observation.pointUV)
+        
+        # get keypoints from oldId frame
+        frame = self.landmarkManager.frames[curId]
+        for LandmarkId,ld in frame.observedLandmarks.items():
+            observation = ld.observations[curId]
+            pointXYZ = ld.pointXYZ
+            cur3dPointsWorld.append(observation.pointUV)
+            cur3dPointsLocal.append(pointWorldToCam(self.poses[curId],pointXYZ))
+            curPoints.append(observation.pointUV)
+
+
+
+
+        ## Test 1: Test Pnp
+        rvec = np.zeros(3,dtype=np.float)
+        tvec = np.zeros((3*1),dtype=np.float)
+        _, rvec, tvec = cv2.solvePnP(np.array(old3dPointsWorld),
+                                     np.array(oldPoints).reshape(-1,2),
+                                     self.K.reshape((3,3)),
+                                     np.zeros(5))
+            
+        print(rvec)
+        rot = cv2.Rodrigues(rvec)[1]
+        
+        
+        pose = self.poses[oldId]
+        T_GT = np.zeros((4,4))
+        T_GT[0:3,0:3] = np.array(pose[0]).reshape(3,3)
+        T_GT[0:3,3] = pose[1].T
+        T_GT[3,3] = 1
+
+        T_Cal = np.zeros((4,4))
+        T_Cal[0:3,0:3] = rvec
+        T_Cal[0:3,3] = tvec.reshape(3)
+        T_Cal[3,3] = 1
+        print(T_Cal)
+        T_GT = np.linalg.inv(T_GT)
+        print("pnp result")
+        print(T_Cal)
+        print("ground truth")
+        print(T_GT)
+
+
+
+        
+
+
+
+
+
+
+
+            
+            
+
 
             
 

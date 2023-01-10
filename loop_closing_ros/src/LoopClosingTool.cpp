@@ -67,6 +67,12 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     
     
     if (keyframes_.count(frame.globalKeyframeID -1)!= 0 && (int(frame.globalKeyframeID) - int(near_frame_) > 0) ){
+        if(keyframes_[frame.globalKeyframeID -1].additionaldescriptors.empty()){
+            ROS_DEBUG_STREAM( " prev keyframe contain empty old descriptor");
+            return false;
+        }
+        
+        
         fbow::fBow bowvector_prev = pDB_->transform(keyframes_[frame.globalKeyframeID -1].additionaldescriptors);
         fbow::fBow bowvector_cur = pDB_->transform(cur_desc);
         prevScore = fbow::fBow::score(bowvector_cur,bowvector_prev);
@@ -76,6 +82,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     if (pq.empty()) {
         return false;
     }
+
     //make sure closet frame have a good score
     int Maxinlier_Id = INT_MIN;
     RelativePose Maxinlier_Pose;
@@ -84,6 +91,8 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     // Store retured match
     vector<cv::DMatch> returned_matches;
     set<int> candiateFrames;
+    ROS_DEBUG_STREAM("start checking eachloop closure candidate"); 
+    
     if (pq.size() > 0){
          for (int i = 0; i < top && !pq.empty() ; i ++ ){
             int candidate_id = pq.top().first;

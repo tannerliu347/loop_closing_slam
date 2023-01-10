@@ -88,7 +88,7 @@ int main(int argc, char **argv)
   camera.reset(new Camera(1,1,1,1));
   config.reset(new Config);
   ros::init(argc, argv, "loop_closing");
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
   string vocab_path;
   fbow::Vocabulary voc;
   //voc.readFromFile("/root/ws/curly_slam/catkin_ws/sift.fbow");

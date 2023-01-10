@@ -6,7 +6,7 @@ void LoopClosingManager::setCore(ros::NodeHandle* nh, LoopClosingTool* ltr){
     test_point_pub = nh->advertise<visualization_msgs::Marker>("loop_closing_pose", 10);
     lc_pointcloud_pub = nh->advertise<visualization_msgs::MarkerArray>("loop_closing_point", 10);
     //keyframe_pub = nh->advertise<frontend::Keyframe>("loop_closing/keyframe", 10);
-    match_pub = nh->advertise<frontend::Match>("loop_closing/match", 10);
+    match_pub = nh->advertise<frontend::Match>("match", 10);
     frameCount = 0;
 }
 void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,const inekf_msgs::StateConstPtr &stateMsg){

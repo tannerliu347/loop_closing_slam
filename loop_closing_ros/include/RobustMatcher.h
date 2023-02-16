@@ -285,7 +285,7 @@ class RobustMatcher {
 	  // Match feature points using RANSAC
 	  // returns fundamental matrix and output match set
 	  cv::Mat match(cv::Mat& image1, cv::Mat& image2, // input images 
-		  std::vector<cv::DMatch>& matches, // output matches and keypoints
+		  std::vector<cv::DMatch>& matches, // output matches and keypaoints
 		  std::vector<cv::KeyPoint>& keypoints1, std::vector<cv::KeyPoint>& keypoints2,
 		  cv::Mat& descriptors1, cv::Mat& descriptors2,
 		  int check=BOTHCHECK) {  // check type (symmetry or ratio or none or both)

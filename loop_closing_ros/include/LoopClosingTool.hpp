@@ -25,6 +25,8 @@
 #include "config.h"
 #include "landmark_manager.h"
 #include "RobustMatcher.h"
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
 // class keyframe{
 
 // };

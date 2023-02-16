@@ -33,6 +33,7 @@ find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Sophus REQUIRED)
 find_package(fbow REQUIRED)
+#find_package(pcl REQUIRED)
 #remove later debug purpose
 
 include_directories(${PROJECT_SOURCE_DIR}/include)

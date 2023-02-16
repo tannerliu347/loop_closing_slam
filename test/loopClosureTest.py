@@ -127,7 +127,7 @@ def windowOptimization(loopPose,curId,oldId,currentEstimate):
                         ))
         initial.insert(L(pointId), landmarkEstiamtion)
         
-        observation_old = landmark.observations[0].pointUV
+        observation_old = landmark.observations[oldId].pointUV
         observation_old = gtsam.Point2(observation_old[0],observation_old[1])
         observation_new = Measurement[i]
         observation_new = gtsam.Point2(observation_new[0],observation_new[1])
@@ -182,7 +182,7 @@ def globalBA(loopPose,curId,oldId,currentEstimate):
     graph = gtsam.NonlinearFactorGraph()
     initial = gtsam.Values()
     # gtsam pose Vs odometry pose
-    gtsamPose = False
+    gtsamPose = True
     
     print(loopPose)
     loopPose = windowOptimization(loopPose,curId,oldId,currentEstimate)
@@ -194,7 +194,6 @@ def globalBA(loopPose,curId,oldId,currentEstimate):
     graph.add(gtsam.PriorFactorPose3(0,prevPose,priorNoise))
    
     loopPoseDict,maxId= loopPoseProp(loopPose,currentEstimate,curId,oldId)
-    
     for id in range(1,maxId + 1):
         # check connected id 
         if not gtsamPose:
@@ -203,6 +202,8 @@ def globalBA(loopPose,curId,oldId,currentEstimate):
             currentPose = currentEstimate.atPose3(id)
         if id in landmarkManager.frames:
             for connected_id in landmarkManager.frames[id].connectedIds:
+                if (connected_id > maxId):
+                    continue
                 if not gtsamPose or connected_id == 0:
                     connected_pose = odometryPose[connected_id]
                 else:
@@ -220,6 +221,8 @@ def globalBA(loopPose,curId,oldId,currentEstimate):
             keys = list(landmark.observedFrames.keys())
             if (keys[0] == 0):
                 keys[0] = 1
+            if(keys[0] > maxId or keys[1] > maxId):
+                continue
             pose1 = currentEstimate.atPose3(keys[0])
             pose2 = currentEstimate.atPose3(keys[1])
             observation1 = landmark.observations[keys[0]]
@@ -231,8 +234,9 @@ def globalBA(loopPose,curId,oldId,currentEstimate):
         initial.insert(L(pointId), landmarkEstiamtion)
         
         for frameId, frame in landmark.observedFrames.items():
+            if (frameId > maxId):
+                continue
             oberservation =  landmark.observations[frameId].pointUV
-           
             graph.add(gtsam.GenericProjectionFactorCal3_S2(
                        gtsam.Point2(oberservation[0],oberservation[1]) , measurementNoise, frameId,
                         L(pointId), landmarkManager.cameraMatrix, landmarkManager.cameraPose))
@@ -272,7 +276,7 @@ def loopPoseProp(mainLoopPose,currentEstimate,curId,oldId):
 def plotPose(imageFrame,estimates):
     titles = ["result","backend","inekf","globalBaResult"]
     color = ['green','blue','red','black']
-    linewidth = [1,1,1,1]
+    linewidth = [2,1,1,1]
     index = 0
     fig = plt.figure(imageFrame)
     ax = fig.add_subplot(projection='3d')
@@ -294,16 +298,16 @@ if __name__ == '__main__':
     currentEstimate = gtsam.Values(currentEstimate)
     # gtsam.utils.plot.plot_trajectory(1,currentEstimate)
     params = gtsam.GaussNewtonParams()
-    priorNoise = gtsam.noiseModel.Diagonal.Sigmas(np.ones(6)*0.1)
-    poseNoise = gtsam.noiseModel.Diagonal.Sigmas(np.ones(6)*0.1)
-    loopNoise = gtsam.noiseModel.Diagonal.Sigmas(np.ones(6)*0.1)
+    priorNoise = gtsam.noiseModel.Diagonal.Sigmas(np.ones(6)*1)
+    poseNoise = gtsam.noiseModel.Diagonal.Sigmas(np.ones(6)*1)
+    loopNoise = gtsam.noiseModel.Diagonal.Sigmas(np.ones(6)*0.01)
     graph = gtsam.NonlinearFactorGraph()
     initial = gtsam.Values()
     # gtsam pose Vs odometry pose
     gtsamPose = True
 
-    print(loopPose)
-    loopPose = windowOptimization(loopPose,curId,oldId,currentEstimate)
+    # print(loopPose)
+    # loopPose = windowOptimization(loopPose,curId,oldId,currentEstimate)
     
     # add prior
     prevPose = currentEstimate.atPose3(1)
@@ -314,6 +318,7 @@ if __name__ == '__main__':
     graph.add(gtsam.PriorFactorPose3(2,currentEstimate.atPose3(2),priorNoise))
     graph.add(gtsam.PriorFactorPose3(3,currentEstimate.atPose3(3),priorNoise))
     loopPoseDict,maxId= loopPoseProp(loopPose,currentEstimate,curId,oldId)
+    print("maxId is " + str(maxId))
     
     for id in range(4,maxId + 1):
         # check connected id 
@@ -324,6 +329,8 @@ if __name__ == '__main__':
             currentPose = currentEstimate.atPose3(id)
         if id in landmarkManager.frames:
             for connected_id in landmarkManager.frames[id].connectedIds:
+                if (connected_id > maxId):
+                    continue
                 if not gtsamPose:
                     connected_pose = odometryPose[connected_id]
                 else:
@@ -338,7 +345,7 @@ if __name__ == '__main__':
    
     # add loop closure
     # loopPose = currentEstimate.atPose3(oldId).inverse() * currentEstimate.atPose3(curId) 
-    connected_pose
+    
     graph.add(gtsam.BetweenFactorPose3(oldId, curId,loopPose, loopNoise))
     # add more loop closure constraint 
 
@@ -347,7 +354,7 @@ if __name__ == '__main__':
         Told_co = currentEstimate.atPose3(oldId).inverse() * Tw_co
         # print(Told_co)
         loopclosureedge = gtsam.BetweenFactorPose3(oldId, id,Told_co, loopNoise)
-        graph.add(loopclosureedge)
+        # graph.add(loopclosureedge)
     optimizer_params = gtsam.LevenbergMarquardtParams()
     #     # optimizer_params.setVerbosityLM('SUMMARY')
     print('graph.size(): ', graph.size())
@@ -361,6 +368,8 @@ if __name__ == '__main__':
     # gtsam.utils.plot.plot_trajectory(0,result)
    
     plotPose(1,[result,currentEstimate, getGT(),globalBAResult])
+    #plotPose(1,[result,currentEstimate, getGT()])
+
     # plotPose(1,[result])
 
     # plt.ylim([-2,6])

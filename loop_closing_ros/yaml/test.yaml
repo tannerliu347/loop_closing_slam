@@ -1,0 +1,13 @@
+loop_closure:
+  featureType: 2
+  featureNum: 500
+  featureSampleNum: 200
+  featureSampleGrid: 5
+  featureExtractionMethod: "vanilla"
+  ransacReprojectionError: 8
+  ransacIterations: 500
+  crossCheck: false
+  depthScale: 1000
+  imageWidth: 400
+  imageHeight: 600
+  cameraInfo: 100 100 100 100

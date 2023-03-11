@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   pcl_conversions
   pcl_ros 
+  
 )
 generate_dynamic_reconfigure_options(
   cfg/Loopclosing.cfg
@@ -33,6 +34,8 @@ find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Sophus REQUIRED)
 find_package(fbow REQUIRED)
+find_package(yaml-cpp REQUIRED)
+
 #find_package(pcl REQUIRED)
 #remove later debug purpose
 
@@ -136,6 +139,8 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${YAML_CPP_INCLUDE_DIRS}
+
 )
 
 ## Declare a C++ library
@@ -148,6 +153,7 @@ ${Boost_LIBRARIES}
 boost_system
 Sophus::Sophus
 glog::glog
+${YAML_CPP_LIBRARIES}
 )
 
 add_executable(LoopClosingMain ${PROJECT_SOURCE_DIR}/src/LoopClosingMain.cpp)

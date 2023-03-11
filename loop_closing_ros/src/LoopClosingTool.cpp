@@ -72,8 +72,8 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         fbow::fBow bowvector_cur;
         if (keyframes_[i].globalKeyframeID  < 0) continue;
         if(keyframes_[i].additionaldescriptors.empty()){
-            ROS_ERROR_STREAM("size" << keyframes_.size());
-            ROS_DEBUG_STREAM(keyframes_[i].globalKeyframeID << " " << i  << "empty old descriptor");
+            LOG(INFO) <<  "size" << keyframes_.size();
+            LOG(INFO) << keyframes_[i].globalKeyframeID << " " << i  << "empty old descriptor";
             continue;
         }
         bowvector_cur = pDB_->transform(cur_desc);
@@ -84,12 +84,12 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     }
     //calculate score of prev frame 
     double prevScore = 1;
-    ROS_DEBUG_STREAM("start finding potential frame"); 
+    LOG(INFO) << "start finding potential frame" ; 
     
     
     if (keyframes_.count(frame.globalKeyframeID -1)!= 0 && (int(frame.globalKeyframeID) - int(near_frame_) > 0) ){
         if(keyframes_[frame.globalKeyframeID -1].additionaldescriptors.empty()){
-            ROS_DEBUG_STREAM( " prev keyframe contain empty old descriptor");
+            LOG(INFO) << " prev keyframe contain empty old descriptor";
             return false;
         }
         
@@ -97,7 +97,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
         fbow::fBow bowvector_prev = pDB_->transform(keyframes_[frame.globalKeyframeID -1].additionaldescriptors);
         fbow::fBow bowvector_cur = pDB_->transform(cur_desc);
         prevScore = fbow::fBow::score(bowvector_cur,bowvector_prev);
-        ROS_DEBUG_STREAM("prevScore is "<< prevScore);
+        LOG(INFO) << "prevScore is "<< prevScore;
     }
     //simple logic check to filter out unwanted
     if (pq.empty()) {
@@ -112,7 +112,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     // Store retured match
     vector<cv::DMatch> returned_matches;
     set<int> candiateFrames;
-    ROS_DEBUG_STREAM("start checking eachloop closure candidate"); 
+    LOG(INFO) << "start checking each loop closure candidate"; 
     
     if (pq.size() > 0){
          for (int i = 0; i < top && !pq.empty() ; i ++ ){
@@ -122,12 +122,12 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             if (candidate_score <= prevScore * 0.8) {
                 break;
             } 
-            ROS_DEBUG_STREAM("candidate_id "<< candidate_id << "  score::  " << candidate_score);
+            LOG(INFO) << "candidate_id "<< candidate_id << "  score::  " << candidate_score;
             if (states.find(candidate_id) == states.end()){
-                ROS_DEBUG_STREAM("cannot find candidate state");
+                LOG(INFO) <<  "cannot find candidate state";
             }
             if (states.find(frame.globalKeyframeID) == states.end()){
-                ROS_DEBUG_STREAM("cannot find current state");
+                LOG(INFO) << "cannot find current state";
             }
             candiateFrames.insert(candidate_id);
             // for (auto connected_id : keyframes_[candidate_id].connectedFrame){
@@ -159,7 +159,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
                 keyframes_[candidate_id].updateDescriptors(updatedCandidateDescriptor);
                 candidate_frame = keyframes_[candidate_id];
             }else{
-                ROS_ERROR_STREAM("cannot find frame " << candidate_id);
+                LOG(INFO) << "cannot find frame " << candidate_id ;
             }
             // int inlier_x = ransac_featureMatching(frame,candidate_frame);
             vector<cv::DMatch> out_test_match;
@@ -177,8 +177,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             
             int inlier = good_matches.size();
             // int inlier_orginal = ransac_matches.size();
-            ROS_DEBUG_STREAM("Inlier size is " << inlier);
-            // ROS_DEBUG_STREAM("Inlier orginal size is " << inlier_orginal);
+            LOG(INFO) << "Inlier size is " << inlier;
             //int inlier = 100;
             if (inlier > inlier_){
                 loop_detected = true;
@@ -264,7 +263,7 @@ void LoopClosingTool::eliminateOutliersFundamental(Keyframe& current,Keyframe& c
             //cv::imshow("matches_window", imMatches);
             //cv::waitKey(1);
             cv::waitKey(1);
-            ROS_DEBUG_STREAM("Total match " << ransac_matches.size() );
+            LOG(INFO) << "Total match " << ransac_matches.size();
 }
 
 int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidate){
@@ -433,11 +432,11 @@ void LoopClosingTool::generateKeyframe(vector<int>& connectedFrames){
     //calculate point 3d ]
     //get3DfeaturePosition(point_3d, currentDepth, goodKeypoints);
     if (currentDescriptors.empty()){
-        ROS_ERROR_STREAM("empty descriptor");
+        LOG(INFO) << "empty descriptor";
         exit(1);
     }
     if (currentDescriptors.empty()){
-            ROS_ERROR_STREAM("empty current descriptor");
+            LOG(INFO) << "empty current descriptor";
             exit(1);
     }   
    
@@ -447,9 +446,9 @@ void LoopClosingTool::generateKeyframe(vector<int>& connectedFrames){
     if(keyframes_.count(currentGlobalKeyframeId) ==0 ){
         keyframes_[currentGlobalKeyframeId] = kf;
     }else{
-        ROS_ERROR_STREAM("Redundant keyframe detected ");
+        LOG(INFO) << "Redundant keyframe detected ";
     }
-    ROS_DEBUG_STREAM("recevied connection frame " << currentGlobalKeyframeId << " connections is  " << connectedFrames.size());
+    LOG(INFO) << "recevied connection frame " << currentGlobalKeyframeId << " connections is  " << connectedFrames.size();
     for (int connectedID : connectedFrames){
         if (connectedID < currentGlobalKeyframeId)
             keyframes_[currentGlobalKeyframeId].connectedFrame.insert(connectedID);
@@ -570,11 +569,11 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
             //cv::imshow("matches_window", imMatches);
             //cv::waitKey(1);
             cv::waitKey(1);
-            ROS_DEBUG_STREAM("Total match " << ransac_matches.size() );
+            LOG(INFO) << "Total match " << ransac_matches.size() ;
         }
         
     } catch (...) {
-       ROS_ERROR_STREAM("failed to plot");
+       LOG(INFO) << "failed to plot";
     }
     cout << "loopclosure pnp match size: " << good_matches.size() << "," << ransac_matches.size() << endl;
 
@@ -834,14 +833,13 @@ void LoopClosingTool::getInviewPoint(set<int>& inViewLandmark,set<int>& visited,
             return;
     }
     visited.insert(startFrame);
-    ROS_DEBUG_STREAM(level << "Total connection of frame "<< startFrame << " is " << keyframes_[startFrame].connectedFrame.size());
+    LOG(INFO) << level << "Total connection of frame "<< startFrame << " is " << keyframes_[startFrame].connectedFrame.size();
     for (int Id : keyframes_[startFrame].globalIDs){
         if (processedID.count(Id) == 0){
             // if (landmark_manager->landmarks[Id]->optimized)
                 inViewLandmark.insert(Id);
         }
     }
-    ROS_DEBUG_STREAM(inViewLandmark.size());
     for (auto connectedFrame:keyframes_[startFrame].connectedFrame){
         getInviewPoint(inViewLandmark,visited,level-1,connectedFrame);
       

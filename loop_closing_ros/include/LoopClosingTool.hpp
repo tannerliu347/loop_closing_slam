@@ -16,9 +16,7 @@
 #include "Keyframe.hpp"
 #include <unordered_map>
 #include "Matchdata.hpp"
-#include <inekf_msgs/State.h>
 #include <queue>
-#include "ros/ros.h"
 #include <sophus/se3.hpp>
 #include <memory>
 #include "camera.h"
@@ -27,6 +25,8 @@
 #include "RobustMatcher.h"
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
+#include <glog/logging.h>
+
 // class keyframe{
 
 // };

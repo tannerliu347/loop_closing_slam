@@ -86,14 +86,14 @@ bool LandmarkManager::inView(int LandmarkID,Sophus::SE3f T_w_i,cv::Point2f& proj
     cout << "total inview Point " << cnt << endl;
     return outputPoints;
  };
-void LandmarkManager::updateLandmark(vector<int>& globalIds,vector<geometry_msgs::Point>& points){
+void LandmarkManager::updateLandmark(vector<int>& globalIds,vector<vector<double>>& points){
     currentProcessingGlobalId = globalIds;
     for (int i =0; i < globalIds.size(); i ++){
         int Id = globalIds[i];
         if (landmarks.count(Id) != 0){
-            landmarks[Id]->pointGlobal[0] = points[i].x;
-            landmarks[Id]->pointGlobal[1] = points[i].y;
-            landmarks[Id]->pointGlobal[2] = points[i].z;
+            landmarks[Id]->pointGlobal[0] = points[i][0];
+            landmarks[Id]->pointGlobal[1] = points[i][1];
+            landmarks[Id]->pointGlobal[2] = points[i][2];
             landmarks[Id]->optimized = true;
         }
      

@@ -27,6 +27,24 @@
 #include <pcl/point_types.h>
 #include <glog/logging.h>
 
+#include <gtsam/nonlinear/Values.h>
+#include <gtsam/inference/Symbol.h>
+#include <gtsam/nonlinear/Marginals.h>
+#include <gtsam/nonlinear/NonlinearEquality.h>
+#include <gtsam/nonlinear/NonlinearFactorGraph.h>
+#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
+#include <gtsam/linear/Preconditioner.h>
+#include <gtsam/linear/PCGSolver.h>
+#include <gtsam/nonlinear/GaussNewtonOptimizer.h>
+#include <gtsam/navigation/CombinedImuFactor.h>
+#include <gtsam/navigation/ImuFactor.h>
+#include <gtsam/nonlinear/ISAM2.h>
+#include <gtsam_unstable/nonlinear/BatchFixedLagSmoother.h>
+#include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
+#include <gtsam/slam/SmartProjectionPoseFactor.h>
+#include <gtsam/slam/ProjectionFactor.h>
+#include <gtsam/geometry/Point2.h>
+#include <gtsam/geometry/SimpleCamera.h>
 // class keyframe{
 
 // };
@@ -63,7 +81,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     LoopClosingTool(fbow::Vocabulary* pDB,shared_ptr<Camera> camera,shared_ptr<Config> config);
    // bool detect_loop_test(const cv::Mat& img);
-    bool detect_loop(vector<Matchdata>& point_matches,inekf_msgs::State state,vector<int>& connectedFrames);
+    bool detect_loop(vector<Matchdata>& point_matches,gtsam::Pose3 state,vector<int>& connectedFrames);
     bool find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match);
     // remove wrong pair with ransac
     void eliminateOutliersFundamental(Keyframe& current,Keyframe& candidate);
@@ -180,7 +198,7 @@ private:
 
     shared_ptr<Config> config_;
 
-    std::unordered_map<int, inekf_msgs::State> states;
+    std::unordered_map<int, gtsam::Pose3> states;
     unordered_map<int,int>  curKey_globalId_map;
    //std::vector<KeyFrame> histKFs_
 };

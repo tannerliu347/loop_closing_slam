@@ -2,7 +2,6 @@
 #ifndef LANDMARK_MANAGER_H
 #define LANDMARK_MANAGER_H
 
-#include <ros/ros.h>
 #include <Eigen/Eigen>
 #include <unordered_map>
 #include <unordered_set>
@@ -10,7 +9,6 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
 #include <sophus/se3.hpp>
-#include <geometry_msgs/Point.h>
 #include "Keyframe.hpp"
 #include "config.h"
 #include "camera.h"
@@ -77,7 +75,7 @@ class LandmarkManager {
         , camera(camera){
     }
     cv::Mat getDescriptors(vector<int>& globalIDs);
-    void updateLandmark(vector<int>& globalIds,vector<geometry_msgs::Point>& points);
+    void updateLandmark(vector<int>& globalIds,vector<vector<double>>& points);
     void plotTrackingStatistic();
     vector<shared_ptr<Landmark>> getVisibleMapPoint(int currentFrameId,Sophus::SE3f T_w_i,unordered_map<int,int>& processed,vector<cv::Point2f>& ProjectedLocations);
     

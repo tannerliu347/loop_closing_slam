@@ -11,7 +11,7 @@ LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB,shared_ptr<Camera> camera
         robust_matcher.reset(new RobustMatcher());
     }
 
-bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches,inekf_msgs::State state,vector<int>& connectedFrames){
+bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches,gtsam::Pose3 state,vector<int>& connectedFrames){
     if (states.count(currentGlobalKeyframeId) == 0){
         states[currentGlobalKeyframeId]= state;
     }
@@ -143,15 +143,8 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
           
             auto old_state = states[candidate_id];
             auto current_state = states[frame.globalKeyframeID];
-            Eigen::Vector3f    position_cur(current_state.position.x, current_state.position.y, current_state.position.z);
-            Eigen::Quaternionf poseOrientation_cur(current_state.orientation.w, current_state.orientation.x, current_state.orientation.y, current_state.orientation.z);
-            Sophus::SE3f currentInekfPose(poseOrientation_cur,position_cur);
 
-            Eigen::Vector3f    position_old(old_state.position.x, old_state.position.y, old_state.position.z);
-            Eigen::Quaternionf poseOrientation_old(old_state.orientation.w, old_state.orientation.x, old_state.orientation.y, old_state.orientation.z);
-            Sophus::SE3f oldInekfPose(poseOrientation_old,position_old);
-
-            Sophus::SE3f relativePose = oldInekfPose.inverse() * currentInekfPose;
+            Sophus::SE3f relativePose = stateTose3(old_state.inverse() * current_state);
             RelativePose pose( relativePose.translation(),relativePose.rotationMatrix());
             Keyframe candidate_frame;
             if (keyframes_.count(candidate_id) != 0){

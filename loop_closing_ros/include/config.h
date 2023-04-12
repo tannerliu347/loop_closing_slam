@@ -19,6 +19,7 @@ struct Config {
     std::string     worldFrame;
     std::string     bodyFrame;
     std::string     cameraFrame;
+
     bool            cameraPoseInitialized = false;
     Eigen::Matrix3f cameraPoseRotation;
     Eigen::Vector3f cameraPoseTranslation;

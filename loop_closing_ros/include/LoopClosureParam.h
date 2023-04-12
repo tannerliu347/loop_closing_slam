@@ -43,6 +43,16 @@ struct LoopClosureParam {
     int  showDepthX = 0;
     int  showDepthY = 0;
 
+    /*loop closuyre related */
+    float min_score  = 0.15; // "Minimum number of score of a frame to be consider potential candidate"
+    int inlier = 10; //"Minimum number of inlier"
+    int top_match = 10; // "Top N frame from fbow database to check for potential loop closure candidate"
+    int first_candidate = 10; // "Number of candidate to check for loop closure"
+    int skip_frame = 0; // "Number of frame to skip before checking for loop closure"
+    int near_frame = 0; //"number of frame to ignore when featching loop closure matching result"
+    string vocab_path = "/home/robotics/Downloads/ORBvoc.txt"; // "Path to vocabulary file"
+
+
    
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     LoopClosureParam()
@@ -99,6 +109,31 @@ inline void read_LoopClosureParam_yaml(const char *filename, std::shared_ptr<Loo
             params->cameraInfo[i] = fs["cameraInfo"][i].as<double>();
         }
     }
+    if (fs["depthScale"]) params->depthScale = fs["depthScale"].as<double>();
+    if (fs["imageWidth"]) params->imageWidth = fs["imageWidth"].as<unsigned int>();
+    if (fs["imageHeight"]) params->imageHeight = fs["imageHeight"].as<unsigned int>();
+    if (fs["cameraPoseRotation"]) {
+        params->cameraPoseRotation = Eigen::Matrix3f::Zero();
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                params->cameraPoseRotation(i, j) = fs["cameraPoseRotation"][i][j].as<float>();
+            }
+        }
+    }
+    if (fs["cameraPoseTranslation"]) {
+        params->cameraPoseTranslation = Eigen::Vector3f::Zero();
+        for (int i = 0; i < 3; i++) {
+            params->cameraPoseTranslation(i) = fs["cameraPoseTranslation"][i].as<float>();
+        }
+    }
+    if (fs["min_score"]) params->min_score = fs["min_score"].as<float>();
+    if (fs["inlier"]) params->inlier = fs["inlier"].as<int>();
+    if (fs["top_match"]) params->top_match = fs["top_match"].as<int>();
+    if (fs["first_candidate"]) params->first_candidate = fs["first_candidate"].as<int>();
+    if (fs["skip_frame"]) params->skip_frame = fs["skip_frame"].as<int>();
+    if (fs["near_frame"]) params->near_frame = fs["near_frame"].as<int>();
+    if (fs["vocab_path"]) params->vocab_path = fs["vocab_path"].as<string>();
+    
     
 }
 #endif /* CONFIG_H */

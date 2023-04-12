@@ -16,7 +16,10 @@ find_package(Boost REQUIRED)
 find_package(Sophus REQUIRED)
 find_package(fbow REQUIRED)
 find_package(yaml-cpp REQUIRED)
-
+find_package(Boost REQUIRED COMPONENTS system filesystem thread date_time)
+find_package(Boost 1.65 REQUIRED )
+find_package(GTSAM REQUIRED)
+find_package(PCL REQUIRED)
 #find_package(pcl REQUIRED)
 #remove later debug purpose
 
@@ -30,21 +33,26 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  include
   ${YAML_CPP_INCLUDE_DIRS}
-
+  ${GTSAM_INCLUDE_DIR}
+  ${PCL_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
+  gtsam
+  gtsam_unstable
 )
 
 ## Declare a C++ library
 list(APPEND thirdparty_libraries
 ${OpenCV_LIBS} 
 ${Boost_LIBRARIES}
+${PCL_LIBRARIES}
 boost_system
 Sophus::Sophus
 glog::glog
 ${YAML_CPP_LIBRARIES}
+
 )
-add_library(loopClosure SHARED ${PROJECT_SOURCE_DIR}/src/LoopClosingTool.cpp ${PROJECT_SOURCE_DIR}/src/landmark_manager.cpp
+add_library(loopClosure SHARED ${PROJECT_SOURCE_DIR}/src/LoopClosingTool.cpp 
 ${PROJECT_SOURCE_DIR}/src/util.cpp ${PROJECT_SOURCE_DIR}/src/camera.cpp)
 
 target_link_libraries( loopClosure  PUBLIC

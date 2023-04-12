@@ -76,9 +76,10 @@ Eigen::Vector2f cvToeigen(cv::Point2f p_c){
     p_e[1] = p_c.y;
     return p_e;
 }
-Sophus::SE3f stateTose3( inekf_msgs::State state){
-    Eigen::Vector3f    positionVector(state.position.x,state.position.y, state.position.z);
-    Eigen::Quaternionf poseOrientation(state.orientation.w, state.orientation.x, state.orientation.y, state.orientation.z);
+Sophus::SE3f stateTose3( gtsam::Pose3 state){
+    Eigen::Vector3f    positionVector(state.x(),state.y(), state.z());
+    auto quaternion = state.rotation().toQuaternion();
+    Eigen::Quaternionf poseOrientation(quaternion.w(), quaternion.x(), quaternion.y(), quaternion.z());
     return  Sophus::SE3f(poseOrientation,positionVector);
 }
 

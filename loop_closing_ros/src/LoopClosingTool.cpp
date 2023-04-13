@@ -1,13 +1,13 @@
 #include "LoopClosingTool.hpp"
 #include <algorithm>
 #include <opencv2/xfeatures2d.hpp>
-LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB,shared_ptr<Camera> camera,shared_ptr<Config> config):pDB_(pDB),
+LoopClosingTool::LoopClosingTool(fbow::Vocabulary* pDB,shared_ptr<Camera> camera,shared_ptr<LoopClosureParam> config):pDB_(pDB),
                                                                                                             camera_(camera),
                                                                                                             config_(config){   
         camera_mat= (cv::Mat_<double>(3, 3) << parameter.FX, 0., parameter.CX, 0., parameter.FY, parameter.CY, 0., 0., 1.);
         lastLoopClosure_ = -1;
         currentGlobalKeyframeId = 0;
-        landmark_manager.reset(new LandmarkManager(config,camera));
+        landmark_manager.reset(new LandmarkManagers(config,camera));
         robust_matcher.reset(new RobustMatcher());
     }
 
@@ -15,7 +15,7 @@ bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches,gtsam::Pose3 
     if (states.count(currentGlobalKeyframeId) == 0){
         states[currentGlobalKeyframeId]= state;
     }
-    if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < skip_frame_ ){
+    if (lastLoopClosure_ != -1 && currentGlobalKeyframeId - lastLoopClosure_ < config_->skip_frame ){
         return false;
     }
     //first add new key frame in 
@@ -54,7 +54,7 @@ bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches,gtsam::Pose3 
     }
     return loop_detected;
 }
-bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match){
+bool LoopClosingTool::find_connection(Keyframes& frame,int& candidate_id,Matchdata& point_match){
     class Compare_score{
         public:
         bool operator() (pair<int,double>& a, pair<int,double>& b) {
@@ -64,11 +64,11 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     //create a temporal current keyframe
     cv::Mat cur_desc = frame.additionaldescriptors;
     cv::Mat img = frame.img;;
-    int maxId = std::max(int(pDB_->size() - first_candidate_),0);
-    int top = top_match_;
+    int maxId = std::max(int(pDB_->size() - config_->first_candidate),0);
+    int top = config_->top_match;
     std::priority_queue<pair<int,double>, std::vector<pair<int,double>>,Compare_score> pq;
     bool loop_detected = false;
-    for (int i = 0; i < (int(frame.globalKeyframeID) - int(near_frame_)); i ++ ){
+    for (int i = 0; i < (int(frame.globalKeyframeID) - int(config_->near_frame)); i ++ ){
         fbow::fBow bowvector_cur;
         if (keyframes_[i].globalKeyframeID  < 0) continue;
         if(keyframes_[i].additionaldescriptors.empty()){
@@ -87,7 +87,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     LOG(INFO) << "start finding potential frame" ; 
     
     
-    if (keyframes_.count(frame.globalKeyframeID -1)!= 0 && (int(frame.globalKeyframeID) - int(near_frame_) > 0) ){
+    if (keyframes_.count(frame.globalKeyframeID -1)!= 0 && (int(frame.globalKeyframeID) - int(config_->near_frame) > 0) ){
         if(keyframes_[frame.globalKeyframeID -1].additionaldescriptors.empty()){
             LOG(INFO) << " prev keyframe contain empty old descriptor";
             return false;
@@ -146,7 +146,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
 
             Sophus::SE3f relativePose = stateTose3(old_state.inverse() * current_state);
             RelativePose pose( relativePose.translation(),relativePose.rotationMatrix());
-            Keyframe candidate_frame;
+            Keyframes candidate_frame;
             if (keyframes_.count(candidate_id) != 0){
                 auto updatedCandidateDescriptor = landmark_manager->getDescriptors(keyframes_[candidate_id].globalIDs);
                 keyframes_[candidate_id].updateDescriptors(updatedCandidateDescriptor);
@@ -172,7 +172,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
             // int inlier_orginal = ransac_matches.size();
             LOG(INFO) << "Inlier size is " << inlier;
             //int inlier = 100;
-            if (inlier > inlier_){
+            if (inlier > config_->inlier){
                 loop_detected = true;
                 if (inlier >  Maxinlier){
                     pnpCorrespondence(frame,candidate_frame);
@@ -223,7 +223,7 @@ bool LoopClosingTool::find_connection(Keyframe& frame,int& candidate_id,Matchdat
     return loop_detected;
 }
 
-void LoopClosingTool::eliminateOutliersFundamental(Keyframe& current,Keyframe& candidate){
+void LoopClosingTool::eliminateOutliersFundamental(Keyframes& current,Keyframes& candidate){
     vector<uchar> status;
     vector<cv::Point2f> lastPoints;
     vector<cv::Point2f> currentPoints;
@@ -259,7 +259,7 @@ void LoopClosingTool::eliminateOutliersFundamental(Keyframe& current,Keyframe& c
             LOG(INFO) << "Total match " << ransac_matches.size();
 }
 
-int LoopClosingTool::ransac_featureMatching(Keyframe& current,Keyframe& candidate){
+int LoopClosingTool::ransac_featureMatching(Keyframes& current,Keyframes& candidate){
     //clear previous matches 
     good_matches.clear();
     goodKeypoints.clear();
@@ -345,20 +345,20 @@ void LoopClosingTool::create_feature(){
     currentKeypoints.clear();
     currentDescriptors.release();
     cv::Ptr<cv::FeatureDetector> detector;
-    switch (featureType_) {
+    switch (config_->featureType) {
     case 1:
-           detector = cv::ORB::create(featureCount_);
+           detector = cv::ORB::create(config_->featureNum);
            break;
     case 2:
     #ifdef COMPILE_WITH_SURF
-            detector = cv::xfeatures2d::SURF::create(featureCount_);
+            detector = cv::xfeatures2d::SURF::create(config->featureNum);
     #else
            throw std::runtime_error("Surf not compiled");
     #endif
             break;
         case 3:
     #ifdef COMPILE_WITH_SIFT
-            detector = cv::SIFT::create(featureCount_);
+            detector = cv::SIFT::create(config->featureNum);
     #else
             throw std::runtime_error("Sift not compiled");
     #endif-6, 
@@ -383,13 +383,13 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint>& Keypoints,cv::Ma
         cout <<"keypoint is empty" << endl;
     }
     cv::Ptr<cv::FeatureDetector>  extraDetector = cv::ORB::create(2000, 1,1);
-    switch (featureType_) {
+    switch (config_->featureType) {
     case 0:
            detector = cv::ORB::create(2000, 1,1);
            break;
     case 1:
     #ifdef COMPILE_WITH_SURF
-            detector = cv::xfeatures2d::SURF::create(featureCount_);
+            detector = cv::xfeatures2d::SURF::create(config->featureNum);
     #else
            throw std::runtime_error("Surf not compiled");
     #endif
@@ -433,7 +433,7 @@ void LoopClosingTool::generateKeyframe(vector<int>& connectedFrames){
             exit(1);
     }   
    
-    Keyframe kf(currentGlobalKeyframeId,currentImage,currentDepth,currentKeypoints,currentDescriptors,additionalDescriptors);
+    Keyframes kf(currentGlobalKeyframeId,currentImage,currentDepth,currentKeypoints,currentDescriptors,additionalDescriptors);
     kf.insertPoint3D(point_3d);
     kf.insertGlobalID(current_globalIDs);
     if(keyframes_.count(currentGlobalKeyframeId) ==0 ){
@@ -482,7 +482,7 @@ void LoopClosingTool::assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen:
     cv::eigen2cv(pos, ransacTGuess);
 }
 
-void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate, RelativePose& pose){
+void LoopClosingTool::eliminateOutliersPnP(Keyframes& current,Keyframes& candidate, RelativePose& pose){
     cout <<"start loop closure pnp " << endl;
     ransac_matches.clear();
     vector<cv::Point3f> candidate_3d = good_lastpoint3d; //3d point from candidate
@@ -515,8 +515,8 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
                            ransacRVectorGuess,
                            ransacTGuess,
                            true,
-                           ransacIterations_,
-                           ransacReprojectionError_,
+                           config_->ransacIterations,
+                           config_->ransacReprojectionError,
                            0.99,
                            inliers,
                            cv::SOLVEPNP_ITERATIVE);
@@ -550,7 +550,7 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
     cv::Mat imMatches;
     id++;
      try {
-        if (ransac_matches.size() > inlier_){
+        if (ransac_matches.size() > config_->inlier){
             cv::drawMatches(lastImage, lastKeypoints, current.img, current.keypoints, ransac_matches, imMatches, cv::Scalar(0, 0, 255), cv::Scalar::all(-1));
             //cv::imshow("matches_window", imMatches);
             cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
@@ -572,7 +572,7 @@ void LoopClosingTool::eliminateOutliersPnP(Keyframe& current,Keyframe& candidate
 
    
 }
-void LoopClosingTool::pnpCorrespondence(Keyframe& current,Keyframe& candidate){
+void LoopClosingTool::pnpCorrespondence(Keyframes& current,Keyframes& candidate){
     // processedID.clear();
     // loopClosurePoint.clear();
     // // traverse current frame glboal Id, prevent thouse got matched again
@@ -910,7 +910,7 @@ bool LoopClosingTool::visualizePointMatch(int landmarkID,cv::Point2f point,cv::P
 
 
 }
-Matchdata LoopClosingTool::genearteNewGlobalId(Keyframe& current, Keyframe& candidate,vector<cv::DMatch>& returned_matches,RelativePose& pose){
+Matchdata LoopClosingTool::genearteNewGlobalId(Keyframes& current, Keyframes& candidate,vector<cv::DMatch>& returned_matches,RelativePose& pose){
     std::vector<int> candidate_globalId = candidate.globalIDs;
     //check ransac matches, find matched global id, created map
     std::unordered_map<int,int> matched_globalId; 

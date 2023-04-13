@@ -7,13 +7,13 @@
 **** Landmark Manager ****
 **************************/
 
-void LandmarkManager::addKeyframe(Keyframe& keyframe) {
+void LandmarkManagers::addKeyframe(Keyframes& keyframe) {
     if ( keyframe.keypoints.size() != keyframe.globalIDs.size() || keyframe.keypoints.size() )
     for (int i = 0 ; i < keyframe.keypoints.size(); i ++){
         int landmarkId = keyframe.globalIDs[i];
-        shared_ptr<Landmark> landmark;
+        shared_ptr<Landmarks> landmark;
         if (landmarks.count(landmarkId) == 0 ){
-            landmark = make_shared<Landmark>();
+            landmark = make_shared<Landmarks>();
             landmarks[landmarkId] = landmark;
             landmark->landmarkId  = landmarkId;
         }
@@ -27,14 +27,14 @@ void LandmarkManager::addKeyframe(Keyframe& keyframe) {
 
     }
 }
-cv::Mat LandmarkManager::getDescriptors(vector<int>& globalIDs){
+cv::Mat LandmarkManagers::getDescriptors(vector<int>& globalIDs){
     cv::Mat descriptors;
     for (int i = 0; i < globalIDs.size(); i ++){
         descriptors.push_back(landmarks[globalIDs[i]]->descriptor);
     }
     return descriptors;
 }
-bool LandmarkManager::inView(int LandmarkID,Sophus::SE3f T_w_i,cv::Point2f& projectedLocation){
+bool LandmarkManagers::inView(int LandmarkID,Sophus::SE3f T_w_i,cv::Point2f& projectedLocation){
     auto t = T_w_i.translation();
     float distance = pow(landmarks[LandmarkID]->pointGlobal[0] - t[0],2.0);
     distance += pow(landmarks[LandmarkID]->pointGlobal[1] - t[1],2.0);
@@ -59,13 +59,12 @@ bool LandmarkManager::inView(int LandmarkID,Sophus::SE3f T_w_i,cv::Point2f& proj
 
     return true;
 }
- vector<shared_ptr<Landmark>> LandmarkManager::getVisibleMapPoint(int currentFrameId,Sophus::SE3f T_w_i,unordered_map<int,int>& processed,vector<cv::Point2f>& ProjectedLocations){
+ vector<shared_ptr<Landmarks>> LandmarkManagers::getVisibleMapPoint(int currentFrameId,Sophus::SE3f T_w_i,unordered_map<int,int>& processed,vector<cv::Point2f>& ProjectedLocations){
     // get all inview key point 
     // add point inview that haven'e been added yet.
-    vector<shared_ptr<Landmark>> outputPoints; 
+    vector<shared_ptr<Landmarks>> outputPoints; 
     
     int cnt = 0;
-    ROS_DEBUG_STREAM("current landmark size " << landmarks.size());
     for (auto ld_pair: landmarks){
         auto landmark = ld_pair.second;
         if (processed.count(landmark->landmarkId) != 0){
@@ -83,10 +82,9 @@ bool LandmarkManager::inView(int LandmarkID,Sophus::SE3f T_w_i,cv::Point2f& proj
 
       
     }
-    cout << "total inview Point " << cnt << endl;
     return outputPoints;
  };
-void LandmarkManager::updateLandmark(vector<int>& globalIds,vector<vector<double>>& points){
+void LandmarkManagers::updateLandmark(vector<int>& globalIds,vector<vector<double>>& points){
     currentProcessingGlobalId = globalIds;
     for (int i =0; i < globalIds.size(); i ++){
         int Id = globalIds[i];

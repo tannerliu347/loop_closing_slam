@@ -20,7 +20,7 @@
 #include <sophus/se3.hpp>
 #include <memory>
 #include "camera.h"
-#include "config.h"
+#include "LoopClosureParam.h"
 #include "landmark_manager.h"
 #include "RobustMatcher.h"
 #include <pcl/io/pcd_io.h>
@@ -79,14 +79,14 @@ struct parameters{
 class LoopClosingTool{
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    LoopClosingTool(fbow::Vocabulary* pDB,shared_ptr<Camera> camera,shared_ptr<Config> config);
+    LoopClosingTool(fbow::Vocabulary* pDB,shared_ptr<Camera> camera,shared_ptr<LoopClosureParam> config);
    // bool detect_loop_test(const cv::Mat& img);
     bool detect_loop(vector<Matchdata>& point_matches,gtsam::Pose3 state,vector<int>& connectedFrames);
-    bool find_connection(Keyframe& frame,int& candidate_id,Matchdata& point_match);
+    bool find_connection(Keyframes& frame,int& candidate_id,Matchdata& point_match);
     // remove wrong pair with ransac
-    void eliminateOutliersFundamental(Keyframe& current,Keyframe& candidate);
-    int ransac_featureMatching(Keyframe& current,Keyframe& candidate);
-    void pnpCorrespondence(Keyframe& current,Keyframe& candidate);
+    void eliminateOutliersFundamental(Keyframes& current,Keyframes& candidate);
+    int ransac_featureMatching(Keyframes& current,Keyframes& candidate);
+    void pnpCorrespondence(Keyframes& current,Keyframes& candidate);
     bool visualizePointMatch(int landmarkID,cv::Point2f point,cv::Point2f projectedLocation);
     void visualizeProjectionFrame(set<int> currentFrameId, set<int> candidateFrameId);
     void visualizeFrame(set<int> frames);
@@ -106,51 +106,51 @@ public:
         this->point_3d.clear();
         this->point_3d = point_3d;
     }
-    void eliminateOutliersPnP(Keyframe& current,Keyframe& candidate, RelativePose& pose);
+    void eliminateOutliersPnP(Keyframes& current,Keyframes& candidate, RelativePose& pose);
     //update this
     void create_camera_p(){
         parameter = parameters();
     }
 
     void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
-    Matchdata genearteNewGlobalId(Keyframe& current, Keyframe& candidate,vector<cv::DMatch>& returned_matches,RelativePose& pose);
+    Matchdata genearteNewGlobalId(Keyframes& current, Keyframes& candidate,vector<cv::DMatch>& returned_matches,RelativePose& pose);
 
-    //set config
-    void setFeatureType(int featureType){
-        featureType_ = featureType;
-    }
+    // //set config
+    // void setFeatureType(int featureType){
+    //     featureType_ = featureType;
+    // }
 
-    void setRansacP(double ransacReprojectionError, int ransacIterations){
-        ransacReprojectionError_ = ransacReprojectionError;
-        ransacIterations_ = ransacReprojectionError;
-    }
-    void setInlier_(int inlier){
-        inlier_ = inlier;
-    }
-    void setTop_match(int top_match){
-        top_match_ = top_match;
-    }
-    void setFrameskip(int skip_frame,int first_candidate,int near_frame){
-        skip_frame_ = skip_frame;
-        first_candidate_ = first_candidate;
-        near_frame_ = near_frame;
-    }
-    void setMinScoreAccept(double minScoreAccept){
-        minScoreAccept_ = minScoreAccept;
-    }
+    // void setRansacP(double ransacReprojectionError, int ransacIterations){
+    //     ransacReprojectionError_ = ransacReprojectionError;
+    //     ransacIterations_ = ransacReprojectionError;
+    // }
+    // void setInlier_(int inlier){
+    //     inlier_ = inlier;
+    // }
+    // void setTop_match(int top_match){
+    //     top_match_ = top_match;
+    // }
+    // void setFrameskip(int skip_frame,int first_candidate,int near_frame){
+    //     skip_frame_ = skip_frame;
+    //     first_candidate_ = first_candidate;
+    //     near_frame_ = near_frame;
+    // }
+    // void setMinScoreAccept(double minScoreAccept){
+    //     minScoreAccept_ = minScoreAccept;
+    // }
     void setVocabularyfile(string path){
         pDB_->readFromFile(path);
     }
-    shared_ptr<LandmarkManager> landmark_manager;
+    shared_ptr<LandmarkManagers> landmark_manager;
     unordered_map<int,int> processedID;
-    vector<pair<shared_ptr<Landmark>,int>> loopClosurePoint;
+    vector<pair<shared_ptr<Landmarks>,int>> loopClosurePoint;
     vector<int> connections;
     shared_ptr<RobustMatcher> robust_matcher; 
 private:
     fbow::Vocabulary* pDB_;
     float minScoreAccept_; // Disregard ones lower than this
     Eigen::MatrixXd* loopClosureMatch_;
-    std::unordered_map<int,Keyframe> keyframes_; //store keyframe class
+    std::unordered_map<int,Keyframes> keyframes_; //store keyframe class
     std::vector<cv::Mat> histKFs_; // store image alone, may be delete
 
     //current matches and feature point
@@ -165,17 +165,17 @@ private:
 
     // ransac
     cv::Mat ransacRGuess, ransacTGuess;
-    //config
-    int featureType_;
-    int featureCount_;
-    double ransacReprojectionError_;
-    int ransacIterations_;
-    double minimum_score;
-    int inlier_; // Minimum number of inlier
-    int top_match_; // Top N frame from fbow database to check for potential loop closure candidate
-    int first_candidate_; // first frame to start check for loop closure candidate
-    int skip_frame_; //number of frame to skip after find a loop closure candidate
-    int near_frame_; // number of frame to ignore when featching loop closure matching result
+    // //config
+    // int featureType_;
+    // int featureCount_;
+    // double ransacReprojectionError_;
+    // int ransacIterations_;
+    // double minimum_score;
+    // int inlier_; // Minimum number of inlier
+    // int top_match_; // Top N frame from fbow database to check for potential loop closure candidate
+    // int first_candidate_; // first frame to start check for loop closure candidate
+    // int skip_frame_; //number of frame to skip after find a loop closure candidate
+    // int near_frame_; // number of frame to ignore when featching loop closure matching result
     //data
     int currentGlobalKeyframeId;
     cv::Mat currentImage;
@@ -196,7 +196,7 @@ private:
     //camera 
     shared_ptr<Camera> camera_;
 
-    shared_ptr<Config> config_;
+    shared_ptr<LoopClosureParam> config_;
 
     std::unordered_map<int, gtsam::Pose3> states;
     unordered_map<int,int>  curKey_globalId_map;

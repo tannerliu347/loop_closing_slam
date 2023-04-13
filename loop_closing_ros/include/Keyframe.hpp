@@ -9,7 +9,7 @@
 
 using namespace std;
 
-class Keyframe {
+class Keyframes {
   public:
     cv::Mat              img;
     cv::Mat              depth;
@@ -30,10 +30,10 @@ class Keyframe {
     //     , featureNum(dess.rows)
     //     , keypoints(key_points) {
     // }
-    Keyframe(){
+    Keyframes(){
         globalKeyframeID = -1;
     }
-    Keyframe(int32_t f_id, const cv::Mat kf,  const cv::Mat d,const vector<cv::KeyPoint> &key_points, const cv::Mat dess,const cv::Mat adddess)
+    Keyframes(int32_t f_id, const cv::Mat kf,  const cv::Mat d,const vector<cv::KeyPoint> &key_points, const cv::Mat dess,const cv::Mat adddess)
         : globalKeyframeID(f_id)
         , img(kf)
         , depth(d)

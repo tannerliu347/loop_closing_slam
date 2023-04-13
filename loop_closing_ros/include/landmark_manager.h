@@ -10,11 +10,11 @@
 #include <opencv2/highgui.hpp>
 #include <sophus/se3.hpp>
 #include "Keyframe.hpp"
-#include "config.h"
 #include "camera.h"
+#include "LoopClosureParam.h"
 using namespace std;
 
-struct Landmark {
+struct Landmarks {
     int                       landmarkId;
     size_t                    measurementSize = 0;
     int                       inViewCount     = 0;
@@ -24,7 +24,7 @@ struct Landmark {
     cv::Mat                   descriptor; 
     bool                      optimized;
     bool                      initiated;
-    Landmark(){
+    Landmarks(){
         optimized = false;
         initiated    = false;
      
@@ -60,24 +60,24 @@ struct SearchResult {
         , keypointIndex(keypointIndex_) {
     }
 };
-class LandmarkManager {
+class LandmarkManagers {
 
   private:
-    shared_ptr<Config> config;
+    shared_ptr<LoopClosureParam> config;
     bool inView(int LandmarkID,Sophus::SE3f T_w_i,cv::Point2f& projectedLocation);
     vector<int> currentProcessingGlobalId;
   public:
-    unordered_map<int, shared_ptr<Landmark>> landmarks;
+    unordered_map<int, shared_ptr<Landmarks>> landmarks;
     shared_ptr<Camera>                     camera;
-    void addKeyframe(Keyframe& keyframe);
-    LandmarkManager(shared_ptr<Config> config,shared_ptr<Camera> camera)
+    void addKeyframe(Keyframes& keyframe);
+    LandmarkManagers(shared_ptr<LoopClosureParam> config,shared_ptr<Camera> camera)
         : config(config)
         , camera(camera){
     }
     cv::Mat getDescriptors(vector<int>& globalIDs);
     void updateLandmark(vector<int>& globalIds,vector<vector<double>>& points);
     void plotTrackingStatistic();
-    vector<shared_ptr<Landmark>> getVisibleMapPoint(int currentFrameId,Sophus::SE3f T_w_i,unordered_map<int,int>& processed,vector<cv::Point2f>& ProjectedLocations);
+    vector<shared_ptr<Landmarks>> getVisibleMapPoint(int currentFrameId,Sophus::SE3f T_w_i,unordered_map<int,int>& processed,vector<cv::Point2f>& ProjectedLocations);
     
 };
 #endif

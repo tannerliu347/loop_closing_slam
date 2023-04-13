@@ -37,6 +37,7 @@ include_directories(
   ${GTSAM_INCLUDE_DIR}
   ${PCL_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+  ${fbow_INCLUDE_DIRS}
   gtsam
   gtsam_unstable
 )
@@ -50,9 +51,10 @@ boost_system
 Sophus::Sophus
 glog::glog
 ${YAML_CPP_LIBRARIES}
-
+${fbow_LIBS}
 )
 add_library(loopClosure SHARED ${PROJECT_SOURCE_DIR}/src/LoopClosingTool.cpp 
+${PROJECT_SOURCE_DIR}/src/landmark_manager.cpp
 ${PROJECT_SOURCE_DIR}/src/util.cpp ${PROJECT_SOURCE_DIR}/src/camera.cpp)
 
 target_link_libraries( loopClosure  PUBLIC

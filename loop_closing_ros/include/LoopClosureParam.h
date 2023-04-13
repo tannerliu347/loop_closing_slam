@@ -1,11 +1,12 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef LoopClosureParam_H
+#define LoopClosureParam_H
 
 #include <string>
 #include <Eigen/Dense>
 #include <opencv2/core/core.hpp>
 #include <glog/logging.h>
 #include <yaml-cpp/yaml.h>
+#include <sstream>
 using namespace std;
 
 enum FeatureType { ORB, SURF, SIFT, KAZE, AKAZE };
@@ -28,13 +29,10 @@ struct LoopClosureParam {
     bool            crossCheck                          = false;
     /* camera info */
     bool         cameraInfoInitialized = false;
-    vector<double> cameraInfo;
+    cv::Mat      cameraMatrix;
     double       depthScale = 1000;
     unsigned int imageWidth;
     unsigned int imageHeight;
-
-    /* feature projection */
-    int featureProjectionFrameNumber = 5;
 
     /* debug */
     int  debugFlag  = 0;
@@ -44,6 +42,7 @@ struct LoopClosureParam {
     int  showDepthY = 0;
 
     /*loop closuyre related */
+    bool useLoopClosure = false;
     float min_score  = 0.15; // "Minimum number of score of a frame to be consider potential candidate"
     int inlier = 10; //"Minimum number of inlier"
     int top_match = 10; // "Top N frame from fbow database to check for potential loop closure candidate"
@@ -68,7 +67,6 @@ struct LoopClosureParam {
     , ransacIterations(500)
     , crossCheck(false)
     , depthScale(1000)
-    , featureProjectionFrameNumber(5)
     , debugFlag(0)
     , timeIt(false)
     , showDepth(false)
@@ -81,7 +79,36 @@ struct LoopClosureParam {
 inline void read_LoopClosureParam_yaml(const char *filename, std::shared_ptr<LoopClosureParam> params) {
     YAML::Node fs = YAML::LoadFile(filename);
     std::cout << "open " << filename << std::endl;
+    fs = fs["dataset"];
+    if (fs["camera_matrix"]){
+        std::string cameraMatrixStr = fs["camera_matrix"].as<std::string>();
+        std::stringstream cameraMatrixStream(cameraMatrixStr);
+        double            K[4];
+        for (auto &val : K) {
+            cameraMatrixStream >> val;
+        }
+        params->cameraMatrix = (cv::Mat1d(3, 3) << K[0], 0, K[2], 0, K[1], K[3], 0, 0, 1);
+    }
+    if (fs["image_width"]) params->imageWidth = fs["image_width"].as<int>();
+    if (fs["image_height"]) params->imageHeight = fs["image_height"].as<int>();
+    if (fs["cameraPose"]) {
+        string cameraPoseStr = fs["cameraPose"].as<string>();
+        std::stringstream cameraPoseStream(cameraPoseStr);
+        double            tmp;
+        for (int i = 0; i < 9; i++) {
+            cameraPoseStream >> tmp;
+            params->cameraPoseRotation(i / 3, i % 3) = tmp;
+        }
+        for (int i = 0; i < 3; i++) {
+            cameraPoseStream >> tmp;
+            params->cameraPoseTranslation(i) = tmp;
+        }
+    }
+    
+    
+    fs = YAML::LoadFile(filename);
     fs = fs["loop_closure"];
+    if (fs["useLoopClosure"]) params->useLoopClosure = fs["useLoopClosure"].as<bool>();
     if (fs["featureType"]) params->featureType = (FeatureType)fs["featureType"].as<int>();
     if (fs["featureNum"]) params->featureNum = fs["featureNum"].as<int>();
     if (fs["featureSampleNum"]) params->featureSampleNum = fs["featureSampleNum"].as<double>();
@@ -91,7 +118,9 @@ inline void read_LoopClosureParam_yaml(const char *filename, std::shared_ptr<Loo
     if (fs["ransacReprojectionError"]) params->ransacReprojectionError = fs["ransacReprojectionError"].as<double>();
     if (fs["ransacIterations"]) params->ransacIterations = fs["ransacIterations"].as<int>();
     if (fs["crossCheck"]) params->crossCheck = fs["crossCheck"].as<bool>();
-    if (fs["featureProjectionFrameNumber"]) params->featureProjectionFrameNumber = fs["featureProjectionFrameNumber"].as<int>();
+    
+
+    
     if (fs["debugFlag"]) params->debugFlag = fs["debugFlag"].as<int>();
     if (fs["timeIt"]) params->timeIt = fs["timeIt"].as<bool>();
     if (fs["showDepth"]) params->showDepth = fs["showDepth"].as<bool>();
@@ -103,29 +132,7 @@ inline void read_LoopClosureParam_yaml(const char *filename, std::shared_ptr<Loo
             params->keyframeSelectionWeight(i) = fs["keyframeSelectionWeight"][i].as<float>();
         }
     }
-    if (fs["cameraInfo"]){
-        params->cameraInfo = vector<double>(4);
-        for (int i = 0; i < 4; i++) {
-            params->cameraInfo[i] = fs["cameraInfo"][i].as<double>();
-        }
-    }
-    if (fs["depthScale"]) params->depthScale = fs["depthScale"].as<double>();
-    if (fs["imageWidth"]) params->imageWidth = fs["imageWidth"].as<unsigned int>();
-    if (fs["imageHeight"]) params->imageHeight = fs["imageHeight"].as<unsigned int>();
-    if (fs["cameraPoseRotation"]) {
-        params->cameraPoseRotation = Eigen::Matrix3f::Zero();
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                params->cameraPoseRotation(i, j) = fs["cameraPoseRotation"][i][j].as<float>();
-            }
-        }
-    }
-    if (fs["cameraPoseTranslation"]) {
-        params->cameraPoseTranslation = Eigen::Vector3f::Zero();
-        for (int i = 0; i < 3; i++) {
-            params->cameraPoseTranslation(i) = fs["cameraPoseTranslation"][i].as<float>();
-        }
-    }
+   
     if (fs["min_score"]) params->min_score = fs["min_score"].as<float>();
     if (fs["inlier"]) params->inlier = fs["inlier"].as<int>();
     if (fs["top_match"]) params->top_match = fs["top_match"].as<int>();

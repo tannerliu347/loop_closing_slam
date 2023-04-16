@@ -54,7 +54,12 @@ struct LoopClosureParam {
     string vocab_path = "/home/robotics/Downloads/ORBvoc.txt"; // "Path to vocabulary file"
     bool use3dMatching = false; // "Use 3d matching for loop closure"
 
-   
+   /*optimization*/
+    bool useOptimization = false;
+    float sigma_prior_rotation = 0.1;
+    float sigma_prior_translation = 0.1;
+
+
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     LoopClosureParam()
     : cameraPoseInitialized(false)
@@ -144,6 +149,7 @@ inline void read_LoopClosureParam_yaml(const char *filename, std::shared_ptr<Loo
     if (fs["vocab_path"]) params->vocab_path = fs["vocab_path"].as<string>();
     if (fs["use3dMatching"]) params->use3dMatching = fs["use3dMatching"].as<bool>();
     
+    if (fs["useOptimization"]) params->useOptimization = fs["useOptimization"].as<bool>();
     
 }
 #endif /* CONFIG_H */

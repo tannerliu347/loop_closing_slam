@@ -47,6 +47,9 @@
 #include <gtsam/geometry/Point2.h>
 #include <gtsam/geometry/SimpleCamera.h>
 #include "RegistrationTool.h"
+using gtsam::symbol_shorthand::X;
+using gtsam::symbol_shorthand::L;
+
 // class keyframe{
 
 // };
@@ -116,7 +119,7 @@ public:
 
     void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
     Matchdata genearteNewGlobalId(Keyframes& current, Keyframes& candidate,vector<cv::DMatch>& returned_matches,RelativePose& pose);
-    gtsam::Values posegraphOptimization(Matchdata matchdata);
+    gtsam::Values posegraphOptimization(Matchdata matchdata, gtsam::Values& initialEstimate);
     // //set config
     // void setFeatureType(int featureType){
     //     featureType_ = featureType;

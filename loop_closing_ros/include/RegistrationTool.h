@@ -27,7 +27,7 @@ struct RegistrationData3d
 class RegistrationTool
 {
     public:
-        RegistrationTool();
+        RegistrationTool(){};
         bool Registration2d(RegistrationData2d& data);
         bool Registration3d(RegistrationData3d& data){
             LOG(FATAL) << "3dRegistration not implemented yet";

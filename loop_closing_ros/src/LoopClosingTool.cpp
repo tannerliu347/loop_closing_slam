@@ -988,6 +988,90 @@ Matchdata LoopClosingTool::genearteNewGlobalId(Keyframes& current, Keyframes& ca
     // return result_globalId;
     return point_match;
 }
-gtsam::Values LoopClosingTool::posegraphOptimization(Matchdata matchdata){
+gtsam::Values LoopClosingTool::posegraphOptimization(Matchdata matchdata, gtsam::Values& initialEstimate){
+   LOG(INFO) << "posegraphOptimization start " << endl;
+    //add multiple
+    auto   q     = Eigen::Quaternionf(matchdata.rp_.rot);
+    auto   t     = matchdata.rp_.pos;
+    int    curId = matchdata.curId_;
+    int    oldId = matchdata.oldId_;
+    int    biggestId = curId;
+
+    gtsam::Values currentEstimate;
+    // create values 
+    for (auto s:states){
+        currentEstimate.insert(X(s.first),s.second);
+    }
+
+    gtsam::Pose3 loop_closurePose = gtsam::Pose3(gtsam::Quaternion(q.w(), q.x(), q.y(), q.z()), gtsam::Point3(t[0], t[1], t[2]));
+    // gtsam::Pose3 loop_closurePose =  currentEstimateCopy.at<Pose3>(X(oldId)).inverse() * currentEstimateCopy.at<Pose3>(X(curId));
+    LOG(INFO) << "current ID and loop id " << curId <<"--" <<oldId << endl;
     
+    // for (auto frameID: keyframes_[curId].connectedFrame){
+    //     if(!currentEstimate.exists(X(frameID))){
+    //         continue;
+    //     }
+    //     if (frameID > curId){
+    //         biggestId = frameID;
+    //     }
+    //     //calculate updated pose
+    //     // T_Candidate_current
+    //     auto Tco_cu =  currentEstimate.at<gtsam::Pose3>(X(frameID)).inverse() * currentEstimate.at<gtsam::Pose3>(X(curId));
+    //     auto Tw_co = (Tco_cu*T_wCurrent_corrected.inverse()).inverse();
+    //     corrected_pose[frameID] = Tw_co;
+    // }
+
+   auto pose_noise = gtsam::noiseModel::Diagonal::Sigmas(
+        (gtsam::Vector(6) << gtsam::Vector3::Constant(config_->sigma_prior_rotation), gtsam::Vector3::Constant(config_->sigma_prior_translation)).finished());
+    auto pose_noise_loop = gtsam::noiseModel::Diagonal::Sigmas(
+        (gtsam::Vector(6) << gtsam::Vector3::Constant(config_->sigma_prior_rotation), gtsam::Vector3::Constant(config_->sigma_prior_translation)).finished());
+    // auto pose_noise = noiseModel::Diagonal::Sigmas((Vector(6) <<
+    // Vector3::Constant(3), Vector3::Constant(1)).finished());
+    std::chrono::time_point<std::chrono::system_clock> start, end;
+
+    start = std::chrono::system_clock::now();
+    gtsam::Values posegraphResult;
+
+    // pose graph lm
+    gtsam::NonlinearFactorGraph::shared_ptr graph = gtsam::NonlinearFactorGraph::shared_ptr(new gtsam::NonlinearFactorGraph());
+    gtsam::Values                           initial;
+
+    // add prior
+    gtsam::Pose3 prior_pose = currentEstimate.at<gtsam::Pose3>(X(0));
+    graph->addPrior(X(0), prior_pose, pose_noise);
+  
+    // add initial estimate and set up between factor
+    initial.insert(X(0), currentEstimate.at<gtsam::Pose3>(X(0)));
+
+    for (int i = 1; i <= biggestId; i++) {
+        if (!currentEstimate.exists(X(i))) {
+            break;
+        }
+        // go through all current frame's covisible graph, then add as between
+        // factor pose
+        auto currentPose   = initialEstimate.at<gtsam::Pose3>(X(i));
+        auto connectedPose = initialEstimate.at<gtsam::Pose3>(X(i-1));
+        auto relativePose  = connectedPose.inverse() * currentPose;
+        graph->add(gtsam::BetweenFactor<gtsam::Pose3>(X(i-1), X(i), relativePose, pose_noise));
+    
+        initial.insert(X(i), currentEstimate.at<gtsam::Pose3>(X(i)));
+    }
+
+    // gtsam::Pose3 loop_closurePose =  Initiry[alodometry[oldId].inverse()* InitialodometcurId];
+    // // Create odometry (Between) factors between pose1 and pose2
+        auto loopclosureedge = gtsam::BetweenFactor<gtsam::Pose3>(X(oldId), X(curId), loop_closurePose, pose_noise_loop);
+        graph->add(loopclosureedge);
+    // optimize the pose graph
+    auto parameters = gtsam::GaussNewtonParams();
+    parameters.setRelativeErrorTol(1e-5);
+    parameters.setMaxIterations(100);
+
+    posegraphResult = gtsam::GaussNewtonOptimizer(*graph, initial, parameters).optimize();
+    // posegraphResult = LevenbergMarquardtOptimizer(*graph, initial).optimize();
+    end = std::chrono::system_clock::now();
+
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    LOG(INFO) << " total pose graph optimization time " << elapsed_seconds.count() << "s";
+    return posegraphResult;
+   
 }

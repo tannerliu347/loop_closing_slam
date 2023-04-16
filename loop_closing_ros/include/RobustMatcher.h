@@ -51,7 +51,7 @@ class RobustMatcher {
 
 	  RobustMatcher()
 		  : normType(cv::NORM_L2), 
-		    ratio(0.6f), refineF(true), refineM(false), confidence(0.98), distance(0.5) {	  
+		    ratio(0.75f), refineF(true), refineM(false), confidence(0.98), distance(0.5) {	  
 
 		// in this case use the associated descriptor
 		// if (!this->descriptor) { 

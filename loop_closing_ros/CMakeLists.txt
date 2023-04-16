@@ -55,7 +55,8 @@ ${fbow_LIBS}
 )
 add_library(loopClosure SHARED ${PROJECT_SOURCE_DIR}/src/LoopClosingTool.cpp 
 ${PROJECT_SOURCE_DIR}/src/landmark_manager.cpp
-${PROJECT_SOURCE_DIR}/src/util.cpp ${PROJECT_SOURCE_DIR}/src/camera.cpp)
+${PROJECT_SOURCE_DIR}/src/util.cpp ${PROJECT_SOURCE_DIR}/src/camera.cpp
+${PROJECT_SOURCE_DIR}/src/RegistrationTool.cpp)
 
 target_link_libraries( loopClosure  PUBLIC
 ${thirdparty_libraries}

@@ -74,12 +74,12 @@ clean: CMakeFiles/loopClosure.dir/clean
 CMakeFiles/loopClosure.dir/all:
 	$(MAKE) -f CMakeFiles/loopClosure.dir/build.make CMakeFiles/loopClosure.dir/depend
 	$(MAKE) -f CMakeFiles/loopClosure.dir/build.make CMakeFiles/loopClosure.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles --progress-num=1,2,3,4 "Built target loopClosure"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles --progress-num=1,2,3,4,5,6 "Built target loopClosure"
 .PHONY : CMakeFiles/loopClosure.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/loopClosure.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles 4
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles 6
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/loopClosure.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles 0
 .PHONY : CMakeFiles/loopClosure.dir/rule

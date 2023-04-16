@@ -7,6 +7,7 @@
 #include <glog/logging.h>
 #include <yaml-cpp/yaml.h>
 #include <sstream>
+#include <iostream>
 using namespace std;
 
 enum FeatureType { ORB, SURF, SIFT, KAZE, AKAZE };
@@ -27,6 +28,7 @@ struct LoopClosureParam {
     double          ransacReprojectionError             = 8;
     int             ransacIterations                    = 500;
     bool            crossCheck                          = false;
+
     /* camera info */
     bool         cameraInfoInitialized = false;
     cv::Mat      cameraMatrix;
@@ -50,7 +52,7 @@ struct LoopClosureParam {
     int skip_frame = 0; // "Number of frame to skip before checking for loop closure"
     int near_frame = 0; //"number of frame to ignore when featching loop closure matching result"
     string vocab_path = "/home/robotics/Downloads/ORBvoc.txt"; // "Path to vocabulary file"
-
+    bool use3dMatching = false; // "Use 3d matching for loop closure"
 
    
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -140,6 +142,7 @@ inline void read_LoopClosureParam_yaml(const char *filename, std::shared_ptr<Loo
     if (fs["skip_frame"]) params->skip_frame = fs["skip_frame"].as<int>();
     if (fs["near_frame"]) params->near_frame = fs["near_frame"].as<int>();
     if (fs["vocab_path"]) params->vocab_path = fs["vocab_path"].as<string>();
+    if (fs["use3dMatching"]) params->use3dMatching = fs["use3dMatching"].as<bool>();
     
     
 }

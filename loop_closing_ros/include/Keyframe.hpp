@@ -18,7 +18,7 @@ class Keyframes {
     vector<cv::KeyPoint> keypoints;
     cv::Mat              descriptors;
     cv::Mat              additionaldescriptors;
-    vector<int>          globalIDs;
+    vector<unsigned int>          globalIDs;
     vector<cv::Point3f>  point_3d;
     std::set<int>             connectedFrame;
 
@@ -46,10 +46,10 @@ class Keyframes {
         additionaldescriptors = adddess;
     }
 
-    void insertGlobalID(int16_t g_id) {
+    void insertGlobalID(unsigned int g_id) {
         globalIDs.push_back(g_id);
     }
-    void insertGlobalID(vector<int32_t>& g_ids) {
+    void insertGlobalID(vector<unsigned int>& g_ids) {
         globalIDs = g_ids;
     }
     void insertPoint3D(vector<cv::Point3f>& p3d){

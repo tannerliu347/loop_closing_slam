@@ -27,14 +27,14 @@ void LandmarkManagers::addKeyframe(Keyframes& keyframe) {
 
     }
 }
-cv::Mat LandmarkManagers::getDescriptors(vector<int>& globalIDs){
+cv::Mat LandmarkManagers::getDescriptors(vector<unsigned int>& globalIDs){
     cv::Mat descriptors;
     for (int i = 0; i < globalIDs.size(); i ++){
         descriptors.push_back(landmarks[globalIDs[i]]->descriptor);
     }
     return descriptors;
 }
-bool LandmarkManagers::inView(int LandmarkID,Sophus::SE3f T_w_i,cv::Point2f& projectedLocation){
+bool LandmarkManagers::inView(unsigned int LandmarkID,Sophus::SE3f T_w_i,cv::Point2f& projectedLocation){
     auto t = T_w_i.translation();
     float distance = pow(landmarks[LandmarkID]->pointGlobal[0] - t[0],2.0);
     distance += pow(landmarks[LandmarkID]->pointGlobal[1] - t[1],2.0);
@@ -84,7 +84,7 @@ bool LandmarkManagers::inView(int LandmarkID,Sophus::SE3f T_w_i,cv::Point2f& pro
     }
     return outputPoints;
  };
-void LandmarkManagers::updateLandmark(vector<int>& globalIds,vector<vector<double>>& points){
+void LandmarkManagers::updateLandmark(vector<unsigned int>& globalIds,vector<vector<double>>& points){
     currentProcessingGlobalId = globalIds;
     for (int i =0; i < globalIds.size(); i ++){
         int Id = globalIds[i];

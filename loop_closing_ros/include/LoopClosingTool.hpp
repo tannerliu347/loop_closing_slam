@@ -23,6 +23,7 @@
 #include "LoopClosureParam.h"
 #include "landmark_manager.h"
 #include "RobustMatcher.h"
+#include "RegistrationTool.h"
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <glog/logging.h>
@@ -45,6 +46,7 @@
 #include <gtsam/slam/ProjectionFactor.h>
 #include <gtsam/geometry/Point2.h>
 #include <gtsam/geometry/SimpleCamera.h>
+#include "RegistrationTool.h"
 // class keyframe{
 
 // };
@@ -93,7 +95,7 @@ public:
     //create feature
     void create_feature();
     void create_feature(std::vector<cv::KeyPoint>& Keypoints,cv::Mat descriptors);
-    void assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID);
+    void assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<unsigned int> globalID);
     void generateKeyframe(vector<int>& connectedFrames);
     void get2DfeaturePosition(vector<cv::Point2f> &point_2d, const vector<cv::KeyPoint> &good_kp2);
     void get3DfeaturePosition(vector<cv::Point3f> &point_3d, const cv::Mat &dpt1, const vector<cv::KeyPoint> &good_kp1);
@@ -114,7 +116,7 @@ public:
 
     void assignRansacGuess(const Eigen::Matrix3f &rot, const Eigen::Vector3f &pos);
     Matchdata genearteNewGlobalId(Keyframes& current, Keyframes& candidate,vector<cv::DMatch>& returned_matches,RelativePose& pose);
-
+    gtsam::Values posegraphOptimization(Matchdata matchdata);
     // //set config
     // void setFeatureType(int featureType){
     //     featureType_ = featureType;
@@ -180,7 +182,7 @@ private:
     int currentGlobalKeyframeId;
     cv::Mat currentImage;
     cv::Mat currentDepth;
-    std::vector<int> current_globalIDs;
+    std::vector<unsigned int> current_globalIDs;
     std::vector<cv::KeyPoint> currentKeypoints;
     std::vector<cv::KeyPoint> goodKeypoints;
     std::vector<cv::KeyPoint> good_lastKeypoints;

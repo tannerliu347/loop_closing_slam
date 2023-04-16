@@ -64,18 +64,18 @@ class LandmarkManagers {
 
   private:
     shared_ptr<LoopClosureParam> config;
-    bool inView(int LandmarkID,Sophus::SE3f T_w_i,cv::Point2f& projectedLocation);
-    vector<int> currentProcessingGlobalId;
+    bool inView(unsigned int LandmarkID,Sophus::SE3f T_w_i,cv::Point2f& projectedLocation);
+    vector<unsigned int> currentProcessingGlobalId;
   public:
-    unordered_map<int, shared_ptr<Landmarks>> landmarks;
+    unordered_map<unsigned int, shared_ptr<Landmarks>> landmarks;
     shared_ptr<Camera>                     camera;
     void addKeyframe(Keyframes& keyframe);
     LandmarkManagers(shared_ptr<LoopClosureParam> config,shared_ptr<Camera> camera)
         : config(config)
         , camera(camera){
     }
-    cv::Mat getDescriptors(vector<int>& globalIDs);
-    void updateLandmark(vector<int>& globalIds,vector<vector<double>>& points);
+    cv::Mat getDescriptors(vector<unsigned int>& globalIDs);
+    void updateLandmark(vector<unsigned int>& globalIds,vector<vector<double>>& points);
     void plotTrackingStatistic();
     vector<shared_ptr<Landmarks>> getVisibleMapPoint(int currentFrameId,Sophus::SE3f T_w_i,unordered_map<int,int>& processed,vector<cv::Point2f>& ProjectedLocations);
     

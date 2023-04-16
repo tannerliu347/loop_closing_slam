@@ -52,7 +52,7 @@ void LoopClosingManager::runLoopClosure(const frontend::Keyframe::ConstPtr& msg,
     //cv::Mat descriptor = descriptor_ptr->image;
     
     //extract globalid, and key points, 
-    std::vector<int> globalId;
+    std::vector<unsigned int> globalId;
     std::vector<cv::Point2f> feature_2d;
     std::vector<cv::Point3f> feature_3d;
     std::vector<cv::KeyPoint> keypoints;

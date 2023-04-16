@@ -69,6 +69,8 @@ landmark_manager.h
 ../include/landmark_manager.h
 RobustMatcher.h
 ../include/RobustMatcher.h
+RegistrationTool.h
+../include/RegistrationTool.h
 pcl/io/pcd_io.h
 -
 pcl/point_types.h
@@ -111,6 +113,8 @@ gtsam/geometry/Point2.h
 -
 gtsam/geometry/SimpleCamera.h
 -
+RegistrationTool.h
+../include/RegistrationTool.h
 
 ../include/LoopClosureParam.h
 string
@@ -125,6 +129,8 @@ yaml-cpp/yaml.h
 -
 sstream
 -
+iostream
+-
 
 ../include/Matchdata.hpp
 opencv2/core/core.hpp
@@ -138,6 +144,16 @@ string
 opencv2/calib3d/calib3d.hpp
 ../include/opencv2/calib3d/calib3d.hpp
 iostream
+-
+
+../include/RegistrationTool.h
+LoopClosureParam.h
+../include/LoopClosureParam.h
+RobustMatcher.h
+../include/RobustMatcher.h
+Matchdata.hpp
+../include/Matchdata.hpp
+glog/logging.h
 -
 
 ../include/RobustMatcher.h

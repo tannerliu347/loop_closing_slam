@@ -150,6 +150,33 @@ src/LoopClosingTool.cpp.s:
 	$(MAKE) -f CMakeFiles/loopClosure.dir/build.make CMakeFiles/loopClosure.dir/src/LoopClosingTool.cpp.s
 .PHONY : src/LoopClosingTool.cpp.s
 
+src/RegistrationTool.o: src/RegistrationTool.cpp.o
+
+.PHONY : src/RegistrationTool.o
+
+# target to build an object file
+src/RegistrationTool.cpp.o:
+	$(MAKE) -f CMakeFiles/loopClosure.dir/build.make CMakeFiles/loopClosure.dir/src/RegistrationTool.cpp.o
+.PHONY : src/RegistrationTool.cpp.o
+
+src/RegistrationTool.i: src/RegistrationTool.cpp.i
+
+.PHONY : src/RegistrationTool.i
+
+# target to preprocess a source file
+src/RegistrationTool.cpp.i:
+	$(MAKE) -f CMakeFiles/loopClosure.dir/build.make CMakeFiles/loopClosure.dir/src/RegistrationTool.cpp.i
+.PHONY : src/RegistrationTool.cpp.i
+
+src/RegistrationTool.s: src/RegistrationTool.cpp.s
+
+.PHONY : src/RegistrationTool.s
+
+# target to generate assembly for a file
+src/RegistrationTool.cpp.s:
+	$(MAKE) -f CMakeFiles/loopClosure.dir/build.make CMakeFiles/loopClosure.dir/src/RegistrationTool.cpp.s
+.PHONY : src/RegistrationTool.cpp.s
+
 src/camera.o: src/camera.cpp.o
 
 .PHONY : src/camera.o
@@ -176,6 +203,33 @@ src/camera.s: src/camera.cpp.s
 src/camera.cpp.s:
 	$(MAKE) -f CMakeFiles/loopClosure.dir/build.make CMakeFiles/loopClosure.dir/src/camera.cpp.s
 .PHONY : src/camera.cpp.s
+
+src/landmark_manager.o: src/landmark_manager.cpp.o
+
+.PHONY : src/landmark_manager.o
+
+# target to build an object file
+src/landmark_manager.cpp.o:
+	$(MAKE) -f CMakeFiles/loopClosure.dir/build.make CMakeFiles/loopClosure.dir/src/landmark_manager.cpp.o
+.PHONY : src/landmark_manager.cpp.o
+
+src/landmark_manager.i: src/landmark_manager.cpp.i
+
+.PHONY : src/landmark_manager.i
+
+# target to preprocess a source file
+src/landmark_manager.cpp.i:
+	$(MAKE) -f CMakeFiles/loopClosure.dir/build.make CMakeFiles/loopClosure.dir/src/landmark_manager.cpp.i
+.PHONY : src/landmark_manager.cpp.i
+
+src/landmark_manager.s: src/landmark_manager.cpp.s
+
+.PHONY : src/landmark_manager.s
+
+# target to generate assembly for a file
+src/landmark_manager.cpp.s:
+	$(MAKE) -f CMakeFiles/loopClosure.dir/build.make CMakeFiles/loopClosure.dir/src/landmark_manager.cpp.s
+.PHONY : src/landmark_manager.cpp.s
 
 src/util.o: src/util.cpp.o
 
@@ -216,9 +270,15 @@ help:
 	@echo "... src/LoopClosingTool.o"
 	@echo "... src/LoopClosingTool.i"
 	@echo "... src/LoopClosingTool.s"
+	@echo "... src/RegistrationTool.o"
+	@echo "... src/RegistrationTool.i"
+	@echo "... src/RegistrationTool.s"
 	@echo "... src/camera.o"
 	@echo "... src/camera.i"
 	@echo "... src/camera.s"
+	@echo "... src/landmark_manager.o"
+	@echo "... src/landmark_manager.i"
+	@echo "... src/landmark_manager.s"
 	@echo "... src/util.o"
 	@echo "... src/util.i"
 	@echo "... src/util.s"

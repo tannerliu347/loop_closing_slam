@@ -31,12 +31,12 @@ bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches,gtsam::Pose3 
     if(loop_detected){
         point_matches.push_back(point_match);
     }
-    if (currentGlobalKeyframeId >=1){
+    if (config_->use3dMatching && currentGlobalKeyframeId >=1){
+
         set<int> InviewLandmarkIds_current;
         set<int> visited_current;
         getInviewPoint(InviewLandmarkIds_current,visited_current,2,currentGlobalKeyframeId);
         getInviewPoint(InviewLandmarkIds_current,visited_current,2,currentGlobalKeyframeId - 1);
-    
         //print pcl file of inview global Keyframe and pcl of inview 
         pcl::PointCloud<pcl::PointXYZI> curCloud;
         for (auto id:InviewLandmarkIds_current){
@@ -50,7 +50,6 @@ bool LoopClosingTool::detect_loop(vector<Matchdata>& point_matches,gtsam::Pose3 
             newpoint.intensity = landmark_manager->landmarks[id]->keypoints.size() * 10;
             curCloud.push_back(newpoint);
         }
-        pcl::io::savePCDFileASCII ("/home/bigby/ws/catkin_ws/pc/" + to_string(currentGlobalKeyframeId) +".pcd", curCloud);
     }
     return loop_detected;
 }
@@ -155,32 +154,93 @@ bool LoopClosingTool::find_connection(Keyframes& frame,int& candidate_id,Matchda
                 LOG(INFO) << "cannot find frame " << candidate_id ;
             }
             // int inlier_x = ransac_featureMatching(frame,candidate_frame);
-            vector<cv::DMatch> out_test_match;
-            vector<cv::KeyPoint> KeyPoint1 = candidate_frame.keypoints;
-            vector<cv::KeyPoint> KeyPoint2 = frame.keypoints;
+            int inlier = -1;
+            RegistrationTool registration_tool;
+            RegistrationData2d registration_data;
+            if (!config_->use3dMatching){
+                registration_data.img_cur = frame.img;
+                registration_data.img_candidate = candidate_frame.img;
+                registration_data.points_cur = frame.keypoints;
+                registration_data.points_candidate = candidate_frame.keypoints;
+                registration_data.descriptors_cur = frame.descriptors;
+                registration_data.descriptors_candidate = candidate_frame.descriptors;
+                registration_tool.Registration2d(registration_data);
+                good_matches = registration_data.matches;
+                inlier = registration_data.inlierCount;
+            }else{
+                set<int> InviewLandmarkIds;
+                set<int> visited;
+                getInviewPoint(InviewLandmarkIds,visited,2,candidate_frame.globalKeyframeID);
+                getInviewPoint(InviewLandmarkIds,visited,2,candidate_frame.globalKeyframeID - 1);
+                getInviewPoint(InviewLandmarkIds,visited,2,candidate_frame.globalKeyframeID + 1);
+                set<int> InviewLandmarkIds_current;
+                set<int> visited_current;
+                // processedID.clear();
+                getInviewPoint(InviewLandmarkIds_current,visited_current,2,currentGlobalKeyframeId);
+                getInviewPoint(InviewLandmarkIds_current,visited_current,2,currentGlobalKeyframeId - 1);
+                getInviewPoint(InviewLandmarkIds_current,visited_current,2,currentGlobalKeyframeId - 2);
+                getInviewPoint(InviewLandmarkIds_current,visited_current,2,currentGlobalKeyframeId - 3);
+                getInviewPoint(InviewLandmarkIds_current,visited_current,2,currentGlobalKeyframeId - 4);
+                
+                //print pcl file of inview global Keyframe and pcl of inview 
+                pcl::PointCloud<pcl::PointXYZI> curCloud;
+                for (auto id:InviewLandmarkIds_current){
+                    pcl::PointXYZI newpoint;
+                    //convert Point from global to local
+                    auto point = this->camera_->world2camera(landmark_manager->landmarks[id]->pointGlobal,stateTose3(states[currentGlobalKeyframeId]));
+                    if (point[2] < 0) continue;
+                    newpoint.x = point[0];
+                    newpoint.y= point[1];
+                    newpoint.z = point[2];
+                    newpoint.intensity = landmark_manager->landmarks[id]->keypoints.size() * 10;
+                    curCloud.push_back(newpoint);
+                }
 
-            cv::Mat matrixF_current = robust_matcher->match(candidate_frame.img,frame.img,good_matches,KeyPoint1,KeyPoint2,candidate_frame.descriptors,frame.descriptors);
-      
+                pcl::PointCloud<pcl::PointXYZI> oldCloud;
+                for (auto id:InviewLandmarkIds){
+                    pcl::PointXYZI newpoint;
+                    auto point = this->camera_->world2camera(landmark_manager->landmarks[id]->pointGlobal,stateTose3(states[candidate_frame.globalKeyframeID]));
+                    if (point[2] < 0) continue;
+                    newpoint.x = point[0];
+                    newpoint.y= point[1];
+                    newpoint.z = point[2];
+                    newpoint.intensity = landmark_manager->landmarks[id]->keypoints.size() * 10;
+                    oldCloud.push_back(newpoint);
+                }
+
+                //3d registration here // not implemented 
+            }
+            if (inlier == -1){
+                LOG(ERROR) << "Invalid inlier size";
+            }
+
+
+            // cv::Mat matrixF_current = robust_matcher->match(candidate_frame.img,frame.img,good_matches,KeyPoint1,KeyPoint2,candidate_frame.descriptors,frame.descriptors);
+
             // cv::Mat Ematrox = cv::essentialFromFundamental(InputArray F, InputArray K1, InputArray K2, OutputArray E)
             // eliminateOutliersPnP(frame,candidate_frame,pose);
           
             // eliminateOutliersFundamental(frame,candidate_frame);
             //ransac_matches = good_matches;
+            
             //eliminateOutliersFundamental(frame,candidate_frame);
             
-            int inlier = good_matches.size();
             // int inlier_orginal = ransac_matches.size();
             LOG(INFO) << "Inlier size is " << inlier;
             //int inlier = 100;
             if (inlier > config_->inlier){
                 loop_detected = true;
+                LOG(INFO) << "Loop Closure detected" << endl;
                 if (inlier >  Maxinlier){
-                    pnpCorrespondence(frame,candidate_frame);
-                    returned_matches = good_matches;
-                    Maxinlier_Id = candidate_id;
-                    Maxinlier = inlier;
-                    Maxinlier_Pose = pose;
-                    matrixF = matrixF_current;
+                    // pnpCorrespondence(frame,candidate_frame);
+                    if (!config_->use3dMatching){
+                        returned_matches = good_matches;
+                        Maxinlier_Id = candidate_id;
+                        Maxinlier = inlier;
+                        Maxinlier_Pose = pose;
+                        matrixF = registration_data.F;
+                    }
+                   
                 }            
             }
             good_matches.clear();
@@ -191,7 +251,7 @@ bool LoopClosingTool::find_connection(Keyframes& frame,int& candidate_id,Matchda
     }
     //pDB_->add(cur_desc);
     
-    if (loop_detected && matrixF.rows == 3){
+    if (!config_->use3dMatching && loop_detected && matrixF.rows == 3){
         cv::Mat matrixE = camera_->K_cv().t() * matrixF * camera_->K_cv();
         cv::Mat R;
         cv::Mat t;
@@ -344,34 +404,34 @@ int LoopClosingTool::ransac_featureMatching(Keyframes& current,Keyframes& candid
 void LoopClosingTool::create_feature(){
     currentKeypoints.clear();
     currentDescriptors.release();
+    additionalDescriptors.release();
     cv::Ptr<cv::FeatureDetector> detector;
+    cv::Ptr<cv::FeatureDetector>  extraDetector = cv::ORB::create(2000, 1,1);
     switch (config_->featureType) {
-    case 1:
+    case 0:
            detector = cv::ORB::create(config_->featureNum);
            break;
-    case 2:
+    case 1:
     #ifdef COMPILE_WITH_SURF
             detector = cv::xfeatures2d::SURF::create(config->featureNum);
     #else
            throw std::runtime_error("Surf not compiled");
     #endif
             break;
-        case 3:
-    #ifdef COMPILE_WITH_SIFT
-            detector = cv::SIFT::create(config->featureNum);
-    #else
-            throw std::runtime_error("Sift not compiled");
-    #endif-6, 
+    case 2:
+            detector = cv::SIFT::create(config_->featureNum);
             break;
-        case 4:
+        case 3:
             detector = cv::KAZE::create();
             break;
-        case 5:
+        case 4:
             detector = cv::AKAZE::create();
             break;
         }
     //descriptor->compute(currentImage, currentKeypoints, currentDescriptors);
-    detector->compute(currentImage, currentKeypoints, currentDescriptors);
+    vector<cv::KeyPoint> additionalKeypoint;
+    extraDetector->detectAndCompute(currentImage, cv::Mat(), additionalKeypoint,additionalDescriptors);
+    detector->detectAndCompute(currentImage, cv::Mat(), currentKeypoints,currentDescriptors);
 }
 void LoopClosingTool::create_feature(std::vector<cv::KeyPoint>& Keypoints,cv::Mat descriptors){
     currentKeypoints.clear();
@@ -407,13 +467,12 @@ void LoopClosingTool::create_feature(std::vector<cv::KeyPoint>& Keypoints,cv::Ma
    
     detector->compute(currentImage, Keypoints,currentDescriptors);
     
-    //currentDescriptors = descriptors;
+    currentDescriptors = descriptors;
     vector<cv::KeyPoint> additionalKeypoint;
     extraDetector->detectAndCompute(currentImage, cv::Mat(), additionalKeypoint,additionalDescriptors);
-    // currentDescriptors.push_back(additionalDescriptor);
     
 }
-void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<int> globalID){
+void LoopClosingTool::assignNewFrame(const cv::Mat &img,const cv::Mat &depth,int gloablKeyframeId,std::vector<unsigned int> globalID){
     currentImage = img;
     currentDepth = depth;
     currentGlobalKeyframeId =  gloablKeyframeId;
@@ -826,7 +885,7 @@ void LoopClosingTool::getInviewPoint(set<int>& inViewLandmark,set<int>& visited,
             return;
     }
     visited.insert(startFrame);
-    LOG(INFO) << level << "Total connection of frame "<< startFrame << " is " << keyframes_[startFrame].connectedFrame.size();
+    // LOG(INFO) << level << "Total connection of frame "<< startFrame << " is " << keyframes_[startFrame].connectedFrame.size();
     for (int Id : keyframes_[startFrame].globalIDs){
         if (processedID.count(Id) == 0){
             // if (landmark_manager->landmarks[Id]->optimized)
@@ -911,10 +970,10 @@ bool LoopClosingTool::visualizePointMatch(int landmarkID,cv::Point2f point,cv::P
 
 }
 Matchdata LoopClosingTool::genearteNewGlobalId(Keyframes& current, Keyframes& candidate,vector<cv::DMatch>& returned_matches,RelativePose& pose){
-    std::vector<int> candidate_globalId = candidate.globalIDs;
+    std::vector<unsigned int> candidate_globalId = candidate.globalIDs;
     //check ransac matches, find matched global id, created map
     std::unordered_map<int,int> matched_globalId; 
-    std::vector<int> current_globalIDs_ = current.globalIDs;
+    std::vector<unsigned int> current_globalIDs_ = current.globalIDs;
     std::vector<int> cur_pointId;
     std::vector<int> old_pointId;
     std::vector<cv::KeyPoint> newmeasurement;
@@ -928,4 +987,7 @@ Matchdata LoopClosingTool::genearteNewGlobalId(Keyframes& current, Keyframes& ca
     //current_globalIDs = result_globalId;
     // return result_globalId;
     return point_match;
+}
+gtsam::Values LoopClosingTool::posegraphOptimization(Matchdata matchdata){
+    
 }

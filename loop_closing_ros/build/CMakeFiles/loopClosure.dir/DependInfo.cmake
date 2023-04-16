@@ -5,7 +5,9 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
   "/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/src/LoopClosingTool.cpp" "/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles/loopClosure.dir/src/LoopClosingTool.cpp.o"
+  "/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/src/RegistrationTool.cpp" "/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles/loopClosure.dir/src/RegistrationTool.cpp.o"
   "/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/src/camera.cpp" "/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles/loopClosure.dir/src/camera.cpp.o"
+  "/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/src/landmark_manager.cpp" "/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles/loopClosure.dir/src/landmark_manager.cpp.o"
   "/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/src/util.cpp" "/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles/loopClosure.dir/src/util.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")

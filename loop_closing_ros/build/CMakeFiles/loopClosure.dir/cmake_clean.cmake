@@ -1,6 +1,8 @@
 file(REMOVE_RECURSE
   "CMakeFiles/loopClosure.dir/src/LoopClosingTool.cpp.o"
+  "CMakeFiles/loopClosure.dir/src/RegistrationTool.cpp.o"
   "CMakeFiles/loopClosure.dir/src/camera.cpp.o"
+  "CMakeFiles/loopClosure.dir/src/landmark_manager.cpp.o"
   "CMakeFiles/loopClosure.dir/src/util.cpp.o"
   "libloopClosure.pdb"
   "libloopClosure.so"

@@ -24,7 +24,7 @@ find_package(PCL REQUIRED)
 #remove later debug purpose
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
-
+include_directories(${PROJECT_SOURCE_DIR}/experiment)
 
 ###########
 ## Build ##
@@ -61,6 +61,10 @@ ${PROJECT_SOURCE_DIR}/src/RegistrationTool.cpp)
 target_link_libraries( loopClosure  PUBLIC
 ${thirdparty_libraries}
 )
+
+add_library(loopClosureReader SHARED ${PROJECT_SOURCE_DIR}/experiment/LoopClosureTestLoader.cpp)
+target_link_libraries( loopClosureReader  PUBLIC 
+${thirdparty_libraries})
 
 # add_executable(LoopClosingMain ${PROJECT_SOURCE_DIR}/src/LoopClosingMain.cpp)
 # add_dependencies(LoopClosingMain ${catkin_EXPORTED_TARGETS})

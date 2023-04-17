@@ -53,6 +53,7 @@ CMAKE_BINARY_DIR = /home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
+all: CMakeFiles/loopClosureReader.dir/all
 all: CMakeFiles/loopClosure.dir/all
 
 .PHONY : all
@@ -63,9 +64,37 @@ preinstall:
 .PHONY : preinstall
 
 # The main recursive "clean" target.
+clean: CMakeFiles/loopClosureReader.dir/clean
 clean: CMakeFiles/loopClosure.dir/clean
 
 .PHONY : clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/loopClosureReader.dir
+
+# All Build rule for target.
+CMakeFiles/loopClosureReader.dir/all:
+	$(MAKE) -f CMakeFiles/loopClosureReader.dir/build.make CMakeFiles/loopClosureReader.dir/depend
+	$(MAKE) -f CMakeFiles/loopClosureReader.dir/build.make CMakeFiles/loopClosureReader.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles --progress-num=7,8 "Built target loopClosureReader"
+.PHONY : CMakeFiles/loopClosureReader.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/loopClosureReader.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles 2
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/loopClosureReader.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/bigby/ws/src/loop_closing_slam/loop_closing_ros/build/CMakeFiles 0
+.PHONY : CMakeFiles/loopClosureReader.dir/rule
+
+# Convenience name for target.
+loopClosureReader: CMakeFiles/loopClosureReader.dir/rule
+
+.PHONY : loopClosureReader
+
+# clean rule for target.
+CMakeFiles/loopClosureReader.dir/clean:
+	$(MAKE) -f CMakeFiles/loopClosureReader.dir/build.make CMakeFiles/loopClosureReader.dir/clean
+.PHONY : CMakeFiles/loopClosureReader.dir/clean
 
 #=============================================================================
 # Target rules for target CMakeFiles/loopClosure.dir

@@ -270,10 +270,6 @@ opencv2/xfeatures2d.hpp
 RegistrationTool.h
 /home/bigby/ws/src/loop_closing_slam/loop_closing_ros/src/RegistrationTool.h
 
-/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/src/landmark_manager.cpp
-landmark_manager.h
-/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/src/landmark_manager.h
-
 /usr/include/eigen3/Eigen/Cholesky
 Core
 /usr/include/eigen3/Eigen/Core

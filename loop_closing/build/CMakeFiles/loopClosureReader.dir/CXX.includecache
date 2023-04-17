@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/experiment/LoopClosureTestLoader.cpp
+LoopClosureTestLoader.h
+/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/experiment/LoopClosureTestLoader.h
+
+/home/bigby/ws/src/loop_closing_slam/loop_closing_ros/experiment/LoopClosureTestLoader.h
+cmath
+-
+vector
+-
+iomanip
+-
+fstream
+-
+sstream
+-
+unistd.h
+-
+memory
+-
+unordered_map
+-
+boost/date_time/posix_time/posix_time.hpp
+-
+sophus/geometry.hpp
+-
+boost/thread.hpp
+-
+glog/logging.h
+-
+gtsam/geometry/Pose3.h
+-
+gtsam/geometry/Rot3.h
+-
+chrono
+-
+ctime
+-
+

@@ -111,6 +111,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named loopClosureReader
+
+# Build rule for target.
+loopClosureReader: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 loopClosureReader
+.PHONY : loopClosureReader
+
+# fast build rule for target.
+loopClosureReader/fast:
+	$(MAKE) -f CMakeFiles/loopClosureReader.dir/build.make CMakeFiles/loopClosureReader.dir/build
+.PHONY : loopClosureReader/fast
+
+#=============================================================================
 # Target rules for targets named loopClosure
 
 # Build rule for target.
@@ -122,6 +135,33 @@ loopClosure: cmake_check_build_system
 loopClosure/fast:
 	$(MAKE) -f CMakeFiles/loopClosure.dir/build.make CMakeFiles/loopClosure.dir/build
 .PHONY : loopClosure/fast
+
+experiment/LoopClosureTestLoader.o: experiment/LoopClosureTestLoader.cpp.o
+
+.PHONY : experiment/LoopClosureTestLoader.o
+
+# target to build an object file
+experiment/LoopClosureTestLoader.cpp.o:
+	$(MAKE) -f CMakeFiles/loopClosureReader.dir/build.make CMakeFiles/loopClosureReader.dir/experiment/LoopClosureTestLoader.cpp.o
+.PHONY : experiment/LoopClosureTestLoader.cpp.o
+
+experiment/LoopClosureTestLoader.i: experiment/LoopClosureTestLoader.cpp.i
+
+.PHONY : experiment/LoopClosureTestLoader.i
+
+# target to preprocess a source file
+experiment/LoopClosureTestLoader.cpp.i:
+	$(MAKE) -f CMakeFiles/loopClosureReader.dir/build.make CMakeFiles/loopClosureReader.dir/experiment/LoopClosureTestLoader.cpp.i
+.PHONY : experiment/LoopClosureTestLoader.cpp.i
+
+experiment/LoopClosureTestLoader.s: experiment/LoopClosureTestLoader.cpp.s
+
+.PHONY : experiment/LoopClosureTestLoader.s
+
+# target to generate assembly for a file
+experiment/LoopClosureTestLoader.cpp.s:
+	$(MAKE) -f CMakeFiles/loopClosureReader.dir/build.make CMakeFiles/loopClosureReader.dir/experiment/LoopClosureTestLoader.cpp.s
+.PHONY : experiment/LoopClosureTestLoader.cpp.s
 
 src/LoopClosingTool.o: src/LoopClosingTool.cpp.o
 
@@ -265,8 +305,12 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
+	@echo "... loopClosureReader"
 	@echo "... edit_cache"
 	@echo "... loopClosure"
+	@echo "... experiment/LoopClosureTestLoader.o"
+	@echo "... experiment/LoopClosureTestLoader.i"
+	@echo "... experiment/LoopClosureTestLoader.s"
 	@echo "... src/LoopClosingTool.o"
 	@echo "... src/LoopClosingTool.i"
 	@echo "... src/LoopClosingTool.s"

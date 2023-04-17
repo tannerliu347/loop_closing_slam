@@ -198,5 +198,6 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
+  "CMakeFiles/loopClosureReader.dir/DependInfo.cmake"
   "CMakeFiles/loopClosure.dir/DependInfo.cmake"
   )
